@@ -5,5 +5,15 @@
       "version": "1.85.1",
       "profile": "minimal"
     }
-  }
+  },
+  "customizations": {
+        "vscode": {
+            "settings": {},
+
+            "extensions": [
+                "GitHub.copilot",
+                "GitHub.copilot-chat"
+            ]
+        }
+    }
 }
