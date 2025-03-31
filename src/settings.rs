@@ -1,8 +1,12 @@
-use config::Config;
-use serde::{Deserialize, Serialize};
 use dirs::data_dir;
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{Read, Write},
+};
 
-const SETTINGS_FILE_NAME: &str = "settings";
+const SETTINGS_FILE_NAME: &str = "settings.toml";
+const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = "WindowsStoreApp";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -12,21 +16,32 @@ pub struct Settings {
 impl Settings {
     pub fn load() -> Self {
         if !Settings::is_existing_settings_file() {
-            Settings::default();
+            let settings = Settings::default();
+            Settings::save(&settings).unwrap();
         }
-        let config = Settings::get_config();
-        config.try_deserialize::<Settings>().unwrap()
-    }
-
-    fn get_config() -> Config {
-        Config::builder()
-            .add_source(config::File::with_name(SETTINGS_FILE_NAME))
-            .build()
-            .unwrap()
+        Settings::load_from_file().unwrap()
     }
 
     fn is_existing_settings_file() -> bool {
         std::path::Path::new(SETTINGS_FILE_NAME).exists()
+    }
+
+    fn load_from_file() -> Result<Settings, Box<dyn std::error::Error>> {
+        let mut file = File::open(SETTINGS_FILE_NAME)?;
+        let mut buf = String::new();
+        let size = file.read_to_string(&mut buf)?;
+        if size == 0 {
+            return Err("Settings file is empty".into());
+        }
+        let settings: Settings = toml::from_str(&buf)?;
+        Ok(settings)
+    }
+
+    fn save(settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
+        let mut file = File::create(SETTINGS_FILE_NAME)?;
+        let settings_str = toml::to_string(settings)?;
+        file.write_all(settings_str.as_bytes())?;
+        Ok(())
     }
 }
 
@@ -34,7 +49,17 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             application_search_path_list: vec![
-                
+                "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs".to_string(), // All Users Start Menu
+                data_dir()
+                    .unwrap()
+                    .join("Microsoft")
+                    .join("Windows")
+                    .join("Start Menu")
+                    .join("Programs")
+                    .to_str()
+                    .unwrap()
+                    .to_string(), // User Start Menu
+                SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP.to_string(), // Windows Store App
             ],
         }
     }

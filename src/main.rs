@@ -24,5 +24,5 @@ fn main() {
     }
 
     let settings = Settings::load();
-    println!("Settings: {:?}", settings);
+    println!("{:?}", settings);
 }
