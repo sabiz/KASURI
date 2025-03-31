@@ -1,6 +1,6 @@
-use fuzzy_matcher::skim::SkimMatcherV2;
-use fuzzy_matcher::FuzzyMatcher;
 use crate::application::Application;
+use fuzzy_matcher::FuzzyMatcher;
+use fuzzy_matcher::skim::SkimMatcherV2;
 
 pub struct FuzzySorter {
     matcher: SkimMatcherV2,
@@ -19,8 +19,12 @@ impl FuzzySorter {
             .map(|app| {
                 let score = self.matcher.fuzzy_match(&app.name, query).unwrap_or(0);
                 (app, score)
-            }).collect();
+            })
+            .collect();
         scored_applications.sort_by(|a, b| b.1.cmp(&a.1));
-        scored_applications.into_iter().map(|(app, _)| app).collect::<Vec<_>>()
+        scored_applications
+            .into_iter()
+            .map(|(app, _)| app)
+            .collect::<Vec<_>>()
     }
 }

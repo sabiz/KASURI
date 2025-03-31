@@ -1,4 +1,3 @@
-
 #[derive(Clone, Debug)]
 pub struct Application {
     pub name: String,
@@ -6,8 +5,6 @@ pub struct Application {
 
 impl Application {
     pub fn new(name: String) -> Self {
-        Self {
-            name
-        }
+        Self { name }
     }
 }

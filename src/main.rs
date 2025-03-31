@@ -1,8 +1,10 @@
 mod application;
 mod fuzzy_sorter;
+mod settings;
 
 use crate::application::Application;
 use crate::fuzzy_sorter::FuzzySorter;
+use crate::settings::Settings;
 
 fn main() {
     let applications = vec![
@@ -20,4 +22,7 @@ fn main() {
     for app in results {
         println!("- {}", app.name);
     }
+
+    let settings = Settings::load();
+    println!("Settings: {:?}", settings);
 }
