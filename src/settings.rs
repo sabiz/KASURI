@@ -6,7 +6,7 @@ use std::{
 };
 
 const SETTINGS_FILE_NAME: &str = "settings.toml";
-const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = "WindowsStoreApp";
+pub const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = "WindowsStoreApp";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
@@ -14,19 +14,23 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn load() -> Self {
+    pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
         if !Settings::is_existing_settings_file() {
             let settings = Settings::default();
-            Settings::save(&settings).unwrap();
+            settings.save()?;
         }
-        Settings::load_from_file().unwrap()
+        Settings::load_from_file()
+    }
+
+    pub fn get_application_search_path_list(&self) -> Vec<String> {
+        self.application_search_path_list.clone()
     }
 
     fn is_existing_settings_file() -> bool {
         std::path::Path::new(SETTINGS_FILE_NAME).exists()
     }
 
-    fn load_from_file() -> Result<Settings, Box<dyn std::error::Error>> {
+    fn load_from_file() -> Result<Self, Box<dyn std::error::Error>> {
         let mut file = File::open(SETTINGS_FILE_NAME)?;
         let mut buf = String::new();
         let size = file.read_to_string(&mut buf)?;
@@ -37,9 +41,9 @@ impl Settings {
         Ok(settings)
     }
 
-    fn save(settings: &Settings) -> Result<(), Box<dyn std::error::Error>> {
+    fn save(self) -> Result<(), Box<dyn std::error::Error>> {
         let mut file = File::create(SETTINGS_FILE_NAME)?;
-        let settings_str = toml::to_string(settings)?;
+        let settings_str = toml::to_string(&self)?;
         file.write_all(settings_str.as_bytes())?;
         Ok(())
     }

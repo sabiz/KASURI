@@ -1,28 +1,13 @@
 mod application;
 mod fuzzy_sorter;
+mod kasuri;
 mod settings;
 
-use crate::application::Application;
-use crate::fuzzy_sorter::FuzzySorter;
-use crate::settings::Settings;
+use crate::kasuri::Kasuri;
 
 fn main() {
-    let applications = vec![
-        Application::new("Firefox".to_string()),
-        Application::new("Chrome".to_string()),
-        Application::new("Visual Studio Code".to_string()),
-        Application::new("File Explorer".to_string()),
-        Application::new("Notepad".to_string()),
-    ];
-    let sorter = FuzzySorter::new();
-    let query = "e";
-
-    let results = sorter.sort(query, applications);
-
-    for app in results {
-        println!("- {}", app.name);
+    if let Err(e) = Kasuri::new().and_then(|k| k.run()) {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
-
-    let settings = Settings::load();
-    println!("{:?}", settings);
 }
