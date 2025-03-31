@@ -5,6 +5,7 @@ use std::{
     io::{Read, Write},
 };
 
+const DEFAULT_SETTINGS_MARKER_DATA_DIR: &str = "<DATA_DIR>";
 const SETTINGS_FILE_NAME: &str = "settings.toml";
 pub const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = "WindowsStoreApp";
 
@@ -43,7 +44,7 @@ impl Settings {
 
     fn save(self) -> Result<(), Box<dyn std::error::Error>> {
         let mut file = File::create(SETTINGS_FILE_NAME)?;
-        let settings_str = toml::to_string(&self)?;
+        let settings_str = toml::to_string_pretty(&self)?;
         file.write_all(settings_str.as_bytes())?;
         Ok(())
     }
@@ -51,20 +52,8 @@ impl Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings {
-            application_search_path_list: vec![
-                "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs".to_string(), // All Users Start Menu
-                data_dir()
-                    .unwrap()
-                    .join("Microsoft")
-                    .join("Windows")
-                    .join("Start Menu")
-                    .join("Programs")
-                    .to_str()
-                    .unwrap()
-                    .to_string(), // User Start Menu
-                SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP.to_string(), // Windows Store App
-            ],
-        }
+        let default_settings_str = include_str!("default_settings.toml");
+        let default_settings_str = default_settings_str.replace(DEFAULT_SETTINGS_MARKER_DATA_DIR, data_dir().unwrap().to_str().unwrap());
+        toml::from_str(default_settings_str.as_str()).unwrap()
     }
 }
