@@ -1,6 +1,7 @@
 mod application;
 mod fuzzy_sorter;
 mod kasuri;
+mod powershell;
 mod settings;
 
 use crate::kasuri::Kasuri;
