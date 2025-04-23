@@ -1,4 +1,4 @@
-use crate::powershell::PowerShell;
+use crate::powershell::{PowerShell, PowerShellResult};
 use walkdir::WalkDir;
 
 const GET_STORE_APP_SCRIPT: &str = include_str!("./scripts/get_store_app.ps1");
@@ -23,47 +23,43 @@ impl Application {
     }
 
     pub fn from_path(path: &str) -> Vec<Self> {
-        let mut applications = Vec::new();
-        for entry in WalkDir::new(path).into_iter().filter_map(|e| e.ok()) {
-            if !entry.file_type().is_file() {
-                continue;
-            }
-            if let Some(ext) = entry.path().extension() {
-                if !(ext.to_ascii_lowercase() == "exe") && !(ext.to_ascii_lowercase() == "lnk") {
-                    continue;
+        WalkDir::new(path)
+            .into_iter()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_type().is_file())
+            .filter_map(|entry| {
+                let path = entry.path();
+                let ext = path.extension()?.to_ascii_lowercase();
+
+                if ext != "exe" && ext != "lnk" {
+                    return None;
                 }
-                if let Some(name) = entry.path().file_name() {
-                    let name = name.to_string_lossy().to_string();
-                    let path = entry.path().to_string_lossy().to_string();
-                    applications.push(Application::new(name, path.clone(), path));
-                }
-            }
-        }
-        applications
+
+                let name = path.file_name()?.to_string_lossy().to_string();
+                let path_str = path.to_string_lossy().to_string();
+
+                Some(Self::new(name, path_str.clone(), path_str))
+            })
+            .collect()
     }
 
     pub fn from_app_store() -> Vec<Self> {
         let powershell = PowerShell::new();
         powershell
             .run(GET_STORE_APP_SCRIPT)
-            .map_err(|e| {
-                eprintln!("Failed to run PowerShell script: {}", e);
+            .and_then(PowerShellResult::to_struct::<Vec<WindowsStoreApp>>)
+            .map(|apps| apps.iter().map(Self::from_windows_store_app).collect())
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to get applications from Windows Store: {}", e);
+                Vec::new()
             })
-            .unwrap()
-            .to_struct::<Vec<WindowsStoreApp>>()
-            .map_err(|e| {
-                eprintln!("Failed to parse PowerShell output: {}", e);
-            })
-            .unwrap()
-            .iter()
-            .map(Application::from_windows_store_app)
-            .collect::<Vec<Self>>()
     }
 
     fn from_windows_store_app(store_app: &WindowsStoreApp) -> Self {
-        let name = store_app.name.clone();
-        let app_id = store_app.app_id.clone();
-        let path = store_app.package_fullname.clone();
-        Application::new(name, app_id, path)
+        Self::new(
+            store_app.name.clone(),
+            store_app.app_id.clone(),
+            store_app.package_fullname.clone(),
+        )
     }
 }

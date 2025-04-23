@@ -20,18 +20,21 @@ impl Kasuri {
 
     pub fn run(&self) -> KasuriResult<()> {
         println!("{:#?}", self.settings);
+
         // Load applications from the specified paths
-        let mut applications = Vec::new();
-        for path in &self.settings.get_application_search_path_list() {
-            println!("Loading applications from: {}", path);
-            if SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP == path {
-                let apps = Application::from_app_store();
-                applications.extend(apps);
-            } else {
-                let apps = Application::from_path(path);
-                applications.extend(apps);
-            }
-        }
+        let applications: Vec<Application> = self
+            .settings
+            .get_application_search_path_list()
+            .iter()
+            .flat_map(|path| {
+                println!("Loading applications from: {}", path);
+                if path == SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP {
+                    Application::from_app_store()
+                } else {
+                    Application::from_path(path)
+                }
+            })
+            .collect();
 
         let sorter = FuzzySorter::new();
         let query = "e";

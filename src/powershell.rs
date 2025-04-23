@@ -56,7 +56,7 @@ impl PowerShellResult {
     /// # Errors
     ///
     /// Returns an error if the PowerShell command fails, or if deserialization fails
-    pub fn to_struct<T>(&self) -> KasuriResult<T>
+    pub fn to_struct<T>(self) -> KasuriResult<T>
     where
         T: DeserializeOwned,
     {

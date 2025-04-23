@@ -27,11 +27,11 @@ impl Settings {
     ///
     /// Returns an error if reading or writing the settings file fails
     pub fn load() -> KasuriResult<Self> {
-        if !Settings::is_existing_settings_file() {
-            let settings = Settings::default();
+        if !Self::is_existing_settings_file() {
+            let settings = Self::default();
             settings.save()?;
         }
-        Settings::load_from_file()
+        Self::load_from_file()
     }
 
     /// Returns a clone of the application search path list

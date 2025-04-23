@@ -14,29 +14,35 @@ impl FuzzySorter {
     }
 
     pub fn sort(&self, query: &str, applications: Vec<Application>) -> Vec<Application> {
-        let mut scored_applications: Vec<(Application, i64)> = applications
+        let mut applications_with_scores: Vec<_> = applications
             .into_iter()
             .map(|app| {
                 let score = self.matcher.fuzzy_match(&app.name, query).unwrap_or(0);
                 (app, score)
             })
             .collect();
-        scored_applications.sort_by(|a, b| b.1.cmp(&a.1));
-        scored_applications
+
+        applications_with_scores.sort_by(|a, b| b.1.cmp(&a.1));
+
+        applications_with_scores
             .into_iter()
             .map(|(app, _)| app)
-            .collect::<Vec<_>>()
+            .collect()
     }
 }
 
 #[test]
 fn test_fuzzy_sort() {
     let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string()),
-        Application::new("Visual Studio Code".to_string(), "".to_string()),
-        Application::new("File Explorer".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string()),
+        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
+        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
+        Application::new(
+            "Visual Studio Code".to_string(),
+            "".to_string(),
+            "".to_string(),
+        ),
+        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
+        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
     ];
     let sorter = FuzzySorter::new();
     let query = "e";
@@ -54,11 +60,15 @@ fn test_fuzzy_sort() {
 #[test]
 fn test_fuzzy_sort_empty_query() {
     let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string()),
-        Application::new("Visual Studio Code".to_string(), "".to_string()),
-        Application::new("File Explorer".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string()),
+        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
+        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
+        Application::new(
+            "Visual Studio Code".to_string(),
+            "".to_string(),
+            "".to_string(),
+        ),
+        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
+        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
     ];
     let sorter = FuzzySorter::new();
     let query = "";
@@ -71,11 +81,15 @@ fn test_fuzzy_sort_empty_query() {
 #[test]
 fn test_fuzzy_sort_no_match() {
     let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string()),
-        Application::new("Visual Studio Code".to_string(), "".to_string()),
-        Application::new("File Explorer".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string()),
+        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
+        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
+        Application::new(
+            "Visual Studio Code".to_string(),
+            "".to_string(),
+            "".to_string(),
+        ),
+        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
+        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
     ];
     let sorter = FuzzySorter::new();
     let query = "z";
