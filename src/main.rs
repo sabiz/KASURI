@@ -1,4 +1,5 @@
 mod application;
+mod application_repository;
 mod fuzzy_sorter;
 mod kasuri;
 mod powershell;
