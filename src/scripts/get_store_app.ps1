@@ -65,5 +65,9 @@ foreach ($app in $startApps) {
     }
 }
 
-# Output as JSON
-$results | ConvertTo-Json
+# Change Encoding to UTF-8
+$PSDefaultParameterValues['*:Encoding'] = 'utf8'
+$global:OutputEncoding = [System.Text.Encoding]::UTF8
+[console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+$results | ConvertTo-Json -Depth 10
