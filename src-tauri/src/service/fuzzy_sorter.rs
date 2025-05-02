@@ -1,4 +1,4 @@
-use crate::application::Application;
+use crate::model::application::Application;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 

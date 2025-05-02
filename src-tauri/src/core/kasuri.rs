@@ -1,7 +1,9 @@
-use crate::application::Application;
-use crate::application_repository::ApplicationRepository;
-use crate::fuzzy_sorter::FuzzySorter;
-use crate::settings::{SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings};
+use crate::core::settings::{
+    SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
+};
+use crate::model::application::Application;
+use crate::repositories::application_repository::ApplicationRepository;
+use crate::service::fuzzy_sorter::FuzzySorter;
 
 pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 

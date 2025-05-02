@@ -1,5 +1,5 @@
-use crate::application::Application;
-use crate::kasuri::KasuriResult;
+use crate::core::kasuri::KasuriResult;
+use crate::model::application::Application;
 use sqlite::State::Row;
 use std::collections::HashMap;
 use std::hash::Hash;

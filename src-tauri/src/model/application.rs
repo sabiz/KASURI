@@ -1,7 +1,7 @@
-use crate::powershell::{PowerShell, PowerShellResult};
+use crate::service::powershell::{PowerShell, PowerShellResult};
 use walkdir::WalkDir;
 
-const GET_STORE_APP_SCRIPT: &str = include_str!("./scripts/get_store_app.ps1");
+const GET_STORE_APP_SCRIPT: &str = include_str!("../scripts/get_store_app.ps1");
 
 #[derive(Clone, Debug)]
 pub struct Application {

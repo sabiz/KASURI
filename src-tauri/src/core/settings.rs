@@ -1,4 +1,4 @@
-use crate::kasuri::KasuriResult;
+use crate::core::kasuri::KasuriResult;
 use dirs::data_dir;
 use serde::{Deserialize, Serialize};
 use std::{
