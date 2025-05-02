@@ -3,7 +3,10 @@ use crate::core::settings::{
 };
 use crate::model::application::Application;
 use crate::repositories::application_repository::ApplicationRepository;
+use crate::repositories::kasuri_repository::KasuriRepository;
+use crate::repositories::repository_initializer::RepositoryInitializer;
 use crate::service::fuzzy_sorter::FuzzySorter;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -15,7 +18,9 @@ fn greet(name: &str) -> String {
 
 pub struct Kasuri {
     settings: Settings,
+    repository_initializer: RepositoryInitializer,
     application_repository: ApplicationRepository,
+    kasuri_repository: KasuriRepository,
 }
 
 impl Kasuri {
@@ -25,19 +30,21 @@ impl Kasuri {
             return Err(format!("Failed to load settings: {}", settings.unwrap_err()).into());
         }
         let settings = settings?;
-        let application_repository = ApplicationRepository::new()?;
+        let repository_initializer = RepositoryInitializer::new();
+        let repositories = repository_initializer.get_repositories()?;
+        let application_repository = repositories.application_repository;
+        let kasuri_repository = repositories.kasuri_repository;
         Ok(Self {
             settings,
+            repository_initializer,
             application_repository,
+            kasuri_repository,
         })
     }
 
     pub fn run(&self) -> KasuriResult<()> {
         println!("{:#?}", self.settings);
-
         let applications = self.load_applications()?;
-        self.application_repository
-            .renew_applications(applications)?;
 
         // let sorter = FuzzySorter::new();
         // let query = "e";
@@ -56,6 +63,10 @@ impl Kasuri {
     }
 
     fn load_applications(&self) -> KasuriResult<Vec<Application>> {
+        if !self.is_search_application_needed() {
+            println!("Application search is not needed.");
+            return self.application_repository.get_applications();
+        }
         // Load applications from the specified paths
         let applications: Vec<Application> = self
             .settings
@@ -70,6 +81,26 @@ impl Kasuri {
                 }
             })
             .collect();
+        self.kasuri_repository.set_last_application_search_time()?;
+        self.application_repository
+            .renew_applications(applications.clone())?;
         Ok(applications)
+    }
+
+    fn is_search_application_needed(&self) -> bool {
+        let last_application_search_time = self
+            .kasuri_repository
+            .get_last_application_search_time()
+            .unwrap_or(0);
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Failed to get current time")
+            .as_secs();
+        let elapsed_time = now - last_application_search_time;
+        elapsed_time
+            > self
+                .settings
+                .get_application_search_interval_on_startup_minute()
+                * 60
     }
 }

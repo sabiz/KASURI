@@ -1,29 +1,26 @@
 use crate::core::kasuri::KasuriResult;
 use crate::model::application::Application;
+use sqlite::ConnectionThreadSafe;
 use sqlite::State::Row;
 use std::collections::HashMap;
-use std::hash::Hash;
-
-const DB_VERSION: u32 = 1;
-const DB_NAME: &str = "kasuri.db";
 
 /// Repository for Application data and statistics
 pub struct ApplicationRepository {
-    connection: sqlite::ConnectionThreadSafe,
+    connection: ConnectionThreadSafe,
 }
 
 impl ApplicationRepository {
-    /// Creates a new ApplicationRepository instance
+    /// Creates a new ApplicationRepository instance with a database connection
     ///
     /// # Errors
     ///
     /// Returns an error if the database connection cannot be established
-    pub fn new() -> KasuriResult<Self> {
-        // let repository = Self { con };
-        // repository.migrate()?;
-        let connection = sqlite::Connection::open_thread_safe(DB_NAME)?;
+    pub fn with_connection(
+        connection: ConnectionThreadSafe,
+        db_version: u32,
+    ) -> KasuriResult<Self> {
         let repository = Self { connection };
-        repository.migrate()?;
+        repository.migrate(db_version)?;
         Ok(repository)
     }
 
@@ -99,13 +96,23 @@ impl ApplicationRepository {
         Ok(())
     }
 
-    fn migrate(&self) -> KasuriResult<()> {
-        let version = self.get_db_version()?;
-        if version == DB_VERSION {
-            return Ok(());
-        }
+    pub fn get_applications(&self) -> KasuriResult<Vec<Application>> {
+        let mut applications = vec![];
+        let mut statement = self
+            .connection
+            .prepare("SELECT app_id, name, path FROM applications")?;
+        while let Ok(Row) = statement.next() {
+            let app_id = statement.read::<String, _>(0)?;
+            let name = statement.read::<String, _>(1)?;
+            let path = statement.read::<String, _>(2)?;
 
-        if version == 0 {
+            applications.push(Application { app_id, name, path });
+        }
+        Ok(applications)
+    }
+
+    fn migrate(&self, db_version: u32) -> KasuriResult<()> {
+        if db_version < 1 {
             self.connection.execute(
                 "CREATE TABLE IF NOT EXISTS applications (
                     app_id TEXT PRIMARY KEY,
@@ -116,21 +123,8 @@ impl ApplicationRepository {
                     added_date INTEGER DEFAULT (unixepoch())
                 )",
             )?;
-            self.connection.execute("PRAGMA user_version = 1")?;
         }
 
         Ok(())
-    }
-
-    fn get_db_version(&self) -> KasuriResult<u32> {
-        let mut statement = self.connection.prepare("PRAGMA user_version")?;
-        let mut version = 0;
-
-        if let Ok(Row) = statement.next() {
-            version = statement.read::<i64, _>(0)? as u32;
-        }
-
-        println!("Database version: {}", version);
-        Ok(version)
     }
 }

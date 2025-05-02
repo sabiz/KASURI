@@ -16,8 +16,14 @@ pub const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = 
 /// Structure that holds application settings
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
-    /// List of application search paths
     application_search_path_list: Vec<String>,
+    application_search_interval_on_startup_minute: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct PartialSettings {
+    application_search_path_list: Option<Vec<String>>,
+    application_search_interval_on_startup_minute: Option<u64>,
 }
 
 impl Settings {
@@ -39,6 +45,11 @@ impl Settings {
         self.application_search_path_list.clone()
     }
 
+    /// Returns the application search interval on startup in minutes
+    pub fn get_application_search_interval_on_startup_minute(&self) -> u64 {
+        self.application_search_interval_on_startup_minute
+    }
+
     /// Check if the settings file exists
     fn is_existing_settings_file() -> bool {
         std::path::Path::new(SETTINGS_FILE_NAME).exists()
@@ -57,7 +68,20 @@ impl Settings {
         if size == 0 {
             return Err("Settings file is empty".into());
         }
-        let settings: Settings = toml::from_str(&buf)?;
+
+        let partial_settings: PartialSettings = toml::from_str(&buf)?;
+
+        let default_settings = Self::default();
+
+        let settings = Settings {
+            application_search_path_list: partial_settings
+                .application_search_path_list
+                .unwrap_or_else(|| default_settings.application_search_path_list),
+            application_search_interval_on_startup_minute: partial_settings
+                .application_search_interval_on_startup_minute
+                .unwrap_or_else(|| default_settings.application_search_interval_on_startup_minute),
+        };
+
         Ok(settings)
     }
 

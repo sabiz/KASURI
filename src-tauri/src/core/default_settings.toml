@@ -1,4 +1,6 @@
 application_search_path_list = [
     'C:\ProgramData\Microsoft\Windows\Start Menu\Programs',
     '<DATA_DIR>\Microsoft\Windows\Start Menu\Programs',
-    "WindowsStoreApp"]
+    "WindowsStoreApp",
+]
+application_search_interval_on_startup_minute = 10080
