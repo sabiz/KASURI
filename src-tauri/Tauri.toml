@@ -1,4 +1,4 @@
-productName = "kasuri"
+productName = "KASURI"
 version = "0.1.0"
 identifier = "jp.sabiz.kasuri"
 
@@ -9,21 +9,45 @@ beforeBuildCommand = "npm run build"
 frontendDist = "../build"
 
 [app]
-# [app.security]
-# csp = null
+withGlobalTauri = false
+
+[app.security]
+capabilities = ["default"]
+
+[app.trayIcon]
+iconPath = "icons/kasuri.ico"
+id = "main"
+menuOnLeftClick = true
+showMenuOnLeftClick = true
+tooltip = "KASURI👘"
 
 [[app.windows]]
-title = "kasuri"
+title = "KASURI"
 width = 800
 height = 600
+alwaysOnTop = true
+backgroundColor = "#000000"
+browserExtensionsEnabled = false
+center = true
+closable = false
+contentProtected = true
+create = true                    # false
+decorations = true               # false
+devtools = true                  # false
+dragDropEnabled = false
+focus = true
+resizable = false
+skipTaskbar = false              # true
+transparent = true
+url = "index.html"
 
 [bundle]
 active = true
 targets = "all"
-icon = [
-    "icons/32x32.png",
-    "icons/128x128.png",
-    "icons/128x128@2x.png",
-    "icons/icon.icns",
-    "icons/icon.ico",
-]
+icon = ["icons/kasuri.ico"]
+category = "Utility"
+copyright = "© 2025 sabiz"
+homepage = "https://github.com/sabiz/KASURI"
+shortDescription = "Fuzzy search app launcher"
+
+[plugins]
