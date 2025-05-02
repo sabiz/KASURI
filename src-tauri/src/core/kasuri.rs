@@ -7,6 +7,12 @@ use crate::service::fuzzy_sorter::FuzzySorter;
 
 pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
 pub struct Kasuri {
     settings: Settings,
     application_repository: ApplicationRepository,
@@ -41,6 +47,11 @@ impl Kasuri {
         // for app in results {
         //     println!("- {}:{}", app.name, app.path);
         // }
+        // tauri::Builder::default()
+        //     .plugin(tauri_plugin_opener::init())
+        //     .invoke_handler(tauri::generate_handler![greet])
+        //     .run(tauri::generate_context!())
+        //     .expect("error while running tauri application");
         Ok(())
     }
 
