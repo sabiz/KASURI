@@ -1,4 +1,7 @@
-use crate::service::powershell::{PowerShell, PowerShellResult};
+use crate::{
+    log_error,
+    service::powershell::{PowerShell, PowerShellResult},
+};
 use walkdir::WalkDir;
 
 const GET_STORE_APP_SCRIPT: &str = include_str!("../scripts/get_store_app.ps1");
@@ -50,7 +53,7 @@ impl Application {
             .and_then(PowerShellResult::to_struct::<Vec<WindowsStoreApp>>)
             .map(|apps| apps.iter().map(Self::from_windows_store_app).collect())
             .unwrap_or_else(|e| {
-                eprintln!("Failed to get applications from Windows Store: {}", e);
+                log_error!("Failed to get applications from Windows Store: {}", e);
                 Vec::new()
             })
     }

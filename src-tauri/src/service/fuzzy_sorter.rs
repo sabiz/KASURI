@@ -48,7 +48,6 @@ fn test_fuzzy_sort() {
     let query = "e";
 
     let results = sorter.sort(query, applications);
-    println!("Results: {:?}", results);
     assert_eq!(results.len(), 5);
     assert_eq!(results[0].name, "File Explorer");
     assert_eq!(results[1].name, "Firefox");

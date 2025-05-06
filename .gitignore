@@ -16,3 +16,4 @@ target/
 # Kasuri
 settings.toml
 kasuri.db
+*.log

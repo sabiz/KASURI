@@ -18,12 +18,16 @@ pub const SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP: &str = 
 pub struct Settings {
     application_search_path_list: Vec<String>,
     application_search_interval_on_startup_minute: u64,
+    log_level: String,
+    log_level_stdout: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 struct PartialSettings {
     application_search_path_list: Option<Vec<String>>,
     application_search_interval_on_startup_minute: Option<u64>,
+    log_level: Option<String>,
+    log_level_stdout: Option<String>,
 }
 
 impl Settings {
@@ -48,6 +52,16 @@ impl Settings {
     /// Returns the application search interval on startup in minutes
     pub fn get_application_search_interval_on_startup_minute(&self) -> u64 {
         self.application_search_interval_on_startup_minute
+    }
+
+    /// Returns the log level
+    pub fn get_log_level(&self) -> String {
+        self.log_level.clone()
+    }
+
+    /// Returns the log level for stdout
+    pub fn get_log_level_stdout(&self) -> String {
+        self.log_level_stdout.clone()
     }
 
     /// Check if the settings file exists
@@ -80,6 +94,12 @@ impl Settings {
             application_search_interval_on_startup_minute: partial_settings
                 .application_search_interval_on_startup_minute
                 .unwrap_or_else(|| default_settings.application_search_interval_on_startup_minute),
+            log_level: partial_settings
+                .log_level
+                .unwrap_or_else(|| default_settings.log_level),
+            log_level_stdout: partial_settings
+                .log_level_stdout
+                .unwrap_or_else(|| default_settings.log_level_stdout),
         };
 
         Ok(settings)

@@ -1,6 +1,7 @@
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
+use crate::log_debug;
 use crate::model::application::Application;
 use crate::repositories::application_repository::ApplicationRepository;
 use crate::repositories::kasuri_repository::KasuriRepository;
@@ -43,7 +44,8 @@ impl Kasuri {
     }
 
     pub fn run(&self) -> KasuriResult<()> {
-        println!("{:#?}", self.settings);
+        log_debug!("Started");
+        log_debug!("Settings: {:#?}", self.settings);
         let applications = self.load_applications()?;
 
         // let sorter = FuzzySorter::new();
@@ -64,7 +66,7 @@ impl Kasuri {
 
     fn load_applications(&self) -> KasuriResult<Vec<Application>> {
         if !self.is_search_application_needed() {
-            println!("Application search is not needed.");
+            log_debug!("Application search is not needed.");
             return self.application_repository.get_applications();
         }
         // Load applications from the specified paths
@@ -73,7 +75,7 @@ impl Kasuri {
             .get_application_search_path_list()
             .iter()
             .flat_map(|path| {
-                println!("Loading applications from: {}", path);
+                log_debug!("Loading applications from: {}", path);
                 if path == SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP {
                     Application::from_app_store()
                 } else {

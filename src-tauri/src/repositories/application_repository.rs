@@ -1,4 +1,5 @@
 use crate::core::kasuri::KasuriResult;
+use crate::log_info;
 use crate::model::application::Application;
 use sqlite::ConnectionThreadSafe;
 use sqlite::State::Row;
@@ -54,7 +55,7 @@ impl ApplicationRepository {
             .collect::<Vec<&&Application>>();
 
         if delete_applications.len() > 0 {
-            println!("Deleting applications: {:?}", delete_applications);
+            log_info!("Deleting applications: {:?}", delete_applications);
             let param_count_question = (0..delete_applications.len())
                 .map(|_| "?")
                 .collect::<Vec<_>>()
@@ -73,7 +74,7 @@ impl ApplicationRepository {
         }
 
         if new_applications.len() > 0 {
-            println!("Inserting new applications: {:?}", new_applications);
+            log_info!("Inserting new applications: {:?}", new_applications);
             let values_placeholders = (0..new_applications.len())
                 .map(|_| "(?, ?, ?)")
                 .collect::<Vec<_>>()
