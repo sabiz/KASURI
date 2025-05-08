@@ -1,3 +1,4 @@
+use crate::core::log::{set_file_log_level, set_stdout_log_level};
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -31,6 +32,10 @@ impl Kasuri {
             return Err(format!("Failed to load settings: {}", settings.unwrap_err()).into());
         }
         let settings = settings?;
+
+        set_file_log_level(&settings.get_log_level())?;
+        set_stdout_log_level(&settings.get_log_level_stdout())?;
+
         let repository_initializer = RepositoryInitializer::new();
         let repositories = repository_initializer.get_repositories()?;
         let application_repository = repositories.application_repository;
