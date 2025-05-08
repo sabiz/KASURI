@@ -19,7 +19,6 @@ pub struct Settings {
     application_search_path_list: Vec<String>,
     application_search_interval_on_startup_minute: u64,
     log_level: String,
-    log_level_stdout: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -27,7 +26,6 @@ struct PartialSettings {
     application_search_path_list: Option<Vec<String>>,
     application_search_interval_on_startup_minute: Option<u64>,
     log_level: Option<String>,
-    log_level_stdout: Option<String>,
 }
 
 impl Settings {
@@ -57,11 +55,6 @@ impl Settings {
     /// Returns the log level
     pub fn get_log_level(&self) -> String {
         self.log_level.clone()
-    }
-
-    /// Returns the log level for stdout
-    pub fn get_log_level_stdout(&self) -> String {
-        self.log_level_stdout.clone()
     }
 
     /// Check if the settings file exists
@@ -97,9 +90,6 @@ impl Settings {
             log_level: partial_settings
                 .log_level
                 .unwrap_or_else(|| default_settings.log_level),
-            log_level_stdout: partial_settings
-                .log_level_stdout
-                .unwrap_or_else(|| default_settings.log_level_stdout),
         };
 
         Ok(settings)

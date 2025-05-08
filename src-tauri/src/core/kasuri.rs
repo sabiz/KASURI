@@ -1,4 +1,6 @@
-use crate::core::log::{set_file_log_level, set_stdout_log_level};
+use tauri::Listener;
+
+// use crate::core::log::{self, set_file_log_level, set_stdout_log_level};
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -12,10 +14,52 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 
+const EVENT_TEST: &str = "test_event";
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+pub fn run() -> KasuriResult<()> {
+    let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
+
+    let plugin_log = tauri_plugin_log::Builder::new()
+        .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
+        .target(tauri_plugin_log::Target::new(
+            tauri_plugin_log::TargetKind::LogDir {
+                file_name: Some("logs".to_string()),
+            },
+        ))
+        .level(match settings.get_log_level().as_str() {
+            "error" => log::LevelFilter::Error,
+            "warn" => log::LevelFilter::Warn,
+            "info" => log::LevelFilter::Info,
+            "debug" => log::LevelFilter::Debug,
+            _ => log::LevelFilter::Info,
+        })
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{} {} {}",
+                tauri_plugin_log::TimezoneStrategy::UseLocal.get_now(),
+                record.level(),
+                message
+            ))
+        })
+        .build();
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(plugin_log)
+        .invoke_handler(tauri::generate_handler![greet])
+        .setup(|app| {
+            log::info!("Tauri is awesome!");
+            Ok(())
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running kasuri");
+    Ok(())
 }
 
 pub struct Kasuri {
@@ -33,8 +77,8 @@ impl Kasuri {
         }
         let settings = settings?;
 
-        set_file_log_level(&settings.get_log_level())?;
-        set_stdout_log_level(&settings.get_log_level_stdout())?;
+        // set_file_log_level(&settings.get_log_level())?;
+        // set_stdout_log_level(&settings.get_log_level_stdout())?;
 
         let repository_initializer = RepositoryInitializer::new();
         let repositories = repository_initializer.get_repositories()?;
@@ -61,10 +105,12 @@ impl Kasuri {
         // for app in results {
         //     println!("- {}:{}", app.name, app.path);
         // }
-        // tauri::Builder::default()
-        //     .plugin(tauri_plugin_opener::init())
-        //     .invoke_handler(tauri::generate_handler![greet])
-        //     .run(tauri::generate_context!())
+        let _ = tauri::Builder::default()
+            .plugin(tauri_plugin_opener::init())
+            .run(tauri::generate_context!());
+
+        // .invoke_handler(tauri::generate_handler![greet])
+
         //     .expect("error while running tauri application");
         Ok(())
     }

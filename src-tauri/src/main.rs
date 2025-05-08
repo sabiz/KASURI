@@ -6,12 +6,8 @@ mod model;
 mod repositories;
 mod service;
 
-use crate::core::kasuri::Kasuri;
-
 fn main() {
-    core::log::init();
-    if let Err(e) = Kasuri::new().and_then(|k| k.run()) {
-        // log_error! マクロを直接使用
+    if let Err(e) = core::kasuri::run() {
         log_error!("Kasuri error: {}", e);
         std::process::exit(1);
     }
