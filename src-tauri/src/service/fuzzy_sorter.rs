@@ -2,6 +2,8 @@ use crate::model::application::Application;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
+const MINIMUM_MATCH_SCORE: i64 = 19;
+
 pub struct FuzzySorter {
     matcher: SkimMatcherV2,
 }
@@ -13,7 +15,11 @@ impl FuzzySorter {
         }
     }
 
-    pub fn sort(&self, query: &str, applications: Vec<Application>) -> Vec<Application> {
+    pub fn sort_with_filter(
+        &self,
+        query: &str,
+        applications: Vec<Application>,
+    ) -> Vec<Application> {
         let mut applications_with_scores: Vec<_> = applications
             .into_iter()
             .map(|app| {
@@ -26,7 +32,12 @@ impl FuzzySorter {
 
         applications_with_scores
             .into_iter()
-            .map(|(app, _)| app)
+            .filter(|(_, score)| *score > MINIMUM_MATCH_SCORE)
+            .map(|(app, score)| {
+                log::debug!("Fuzzy match score for {}: {}", app.name, score);
+                app
+            })
+            // .map(|(app, _)| app)
             .collect()
     }
 }
@@ -47,7 +58,7 @@ fn test_fuzzy_sort() {
     let sorter = FuzzySorter::new();
     let query = "e";
 
-    let results = sorter.sort(query, applications);
+    let results = sorter.sort_with_filter(query, applications);
     assert_eq!(results.len(), 5);
     assert_eq!(results[0].name, "File Explorer");
     assert_eq!(results[1].name, "Firefox");
@@ -72,7 +83,7 @@ fn test_fuzzy_sort_empty_query() {
     let sorter = FuzzySorter::new();
     let query = "";
 
-    let results = sorter.sort(query, applications);
+    let results = sorter.sort_with_filter(query, applications);
 
     assert_eq!(results.len(), 5);
 }
@@ -93,7 +104,7 @@ fn test_fuzzy_sort_no_match() {
     let sorter = FuzzySorter::new();
     let query = "z";
 
-    let results = sorter.sort(query, applications);
+    let results = sorter.sort_with_filter(query, applications);
 
     assert_eq!(results.len(), 5);
 }

@@ -2,8 +2,15 @@
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
 
-  let searchQuery = $state("a");
-  let suggestions = $state<string[]>([]);
+  const INVOKE_SEARCH_APPLICATION = "search_application";
+
+  interface Application {
+    name: string;
+    app_id: string;
+  }
+
+  let searchQuery = $state("");
+  let suggestions = $state<Application[]>([]);
   let showSuggestions = $state(true);
   let searchForm: HTMLFormElement | null = null;
   let searchInputClass = $state("");
@@ -14,7 +21,7 @@
         : "border-1 rounded-lg";
   });
   /*
-   * This function handles the input event of the search input field.
+   * handle the input event of the search input field.
    */
   async function handleSearchInput() {
     if (searchQuery.trim() === "") {
@@ -23,31 +30,11 @@
       return;
     }
 
-    // TODO: Fetch suggestions from a Backend
-    const sampleSuggestions = [
-      "Tauri",
-      "Svelte",
-      "Vite",
-      "TypeScript",
-      "Rust",
-      "JavaScript",
-      "TailwindCSS",
-      "Frontend",
-      "Backend",
-      "WebAssembly",
-      "Web App",
-      "Progressive Web App",
-      "Cross-Platform",
-      "Native App",
-      "Electron",
-      "React",
-      "Desktop App",
-    ];
-    suggestions = sampleSuggestions.filter((item) =>
-      item.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    let result = await invoke(INVOKE_SEARCH_APPLICATION, {
+      query: searchQuery,
+    });
+    suggestions = result as Application[];
     showSuggestions = true;
-    console.log("Suggestions:", suggestions);
   }
 
   /*
@@ -68,7 +55,6 @@
     // Here you would typically process the search
     showSuggestions = false;
   }
-  handleSearchInput();
 
   // async function greet(event: Event) {
   //   event.preventDefault();
@@ -173,9 +159,9 @@
                 "text-(--color-text)",
                 "last:rounded-b-lg",
               ]}
-              onmousedown={() => selectSuggestion(suggestion)}
+              onmousedown={() => selectSuggestion(suggestion.app_id)}
             >
-              {suggestion}
+              {suggestion.name}
             </button>
           {/each}
         </ul>

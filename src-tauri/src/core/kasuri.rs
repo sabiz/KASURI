@@ -1,31 +1,32 @@
-use tauri::{Listener, Manager};
-
+use tauri::Manager;
 // use crate::core::log::{self, set_file_log_level, set_stdout_log_level};
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
 use crate::model::application::Application;
 use crate::repositories::application_repository::ApplicationRepository;
-use crate::repositories::kasuri_repository::{self, KasuriRepository};
+use crate::repositories::kasuri_repository::KasuriRepository;
 use crate::repositories::repository_initializer::RepositoryInitializer;
 use crate::service::fuzzy_sorter::FuzzySorter;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 
-const EVENT_TEST: &str = "test_event";
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
+const SEARCH_RESULT_LIMIT: usize = 6;
 
 struct Kasuri {
     settings: Settings,
     repository_initializer: RepositoryInitializer,
     application_repository: ApplicationRepository,
     kasuri_repository: KasuriRepository,
+    fuzzy_sorter: FuzzySorter,
+    app_cache: Option<Vec<Application>>,
+}
+
+#[derive(serde::Serialize)]
+struct AppForView {
+    name: String,
+    app_id: String,
 }
 
 pub fn run() -> KasuriResult<()> {
@@ -34,11 +35,11 @@ pub fn run() -> KasuriResult<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(get_plugin_log(&settings).build())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![search_application])
         .setup(|app| {
             log::debug!("Setup started");
             log::debug!("Settings: {:#?}", settings);
-            let kasuri = Kasuri::with_settings(settings)?;
+            let mut kasuri = Kasuri::with_settings(settings)?;
             kasuri.init()?;
             app.manage(kasuri);
             Ok(())
@@ -73,6 +74,13 @@ fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
         })
 }
 
+#[tauri::command]
+fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<AppForView> {
+    log::debug!("Searching for application: {}", query);
+    let kasuri = app_state.inner();
+    kasuri.handle_search_application(query)
+}
+
 impl Kasuri {
     pub fn new() -> KasuriResult<Self> {
         let settings = Settings::load();
@@ -93,12 +101,28 @@ impl Kasuri {
             repository_initializer,
             application_repository,
             kasuri_repository,
+            fuzzy_sorter: FuzzySorter::new(),
+            app_cache: None,
         })
     }
 
-    pub fn init(&self) -> KasuriResult<()> {
-        let applications = self.load_applications()?;
+    pub fn init(&mut self) -> KasuriResult<()> {
+        self.app_cache = Some(self.load_applications()?);
         Ok(())
+    }
+
+    pub fn handle_search_application(&self, query: &str) -> Vec<AppForView> {
+        let applications = self.app_cache.clone().unwrap_or_default();
+        let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
+        let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);
+
+        sorted_apps[..limit]
+            .iter()
+            .map(|app| AppForView {
+                name: app.name.clone(),
+                app_id: app.app_id.clone(),
+            })
+            .collect()
     }
 
     /// Load applications from the specified paths  
