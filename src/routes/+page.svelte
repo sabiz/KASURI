@@ -84,16 +84,26 @@
       onsubmit={handleSearch}
       bind:this={searchForm}
     >
-      <div class={["display-flex", "relative"]}>
+      <div
+        data-tauri-drag-region
+        class={[
+          "w-full",
+          "display-flex",
+          "relative",
+          "bg-(--color-bg)",
+          "border-solid",
+          "border-(--color-line)",
+          "pr-3",
+          searchInputClass,
+        ]}
+      >
         <input
           type="text"
           class={[
-            "w-full",
+            "w-[calc(100%-10px)]",
             "pl-3",
-            "pr-[60px]",
-            "py-3",
-            "border-solid",
-            "border-(--color-line)",
+            "pr-3",
+            "m-3",
             "text-2xl",
             "ease-linear",
             "bg-(--color-bg)",
@@ -101,7 +111,6 @@
             "text-(--color-text)",
             "shadow-(--shadow-base)",
             "outline-none",
-            searchInputClass,
           ]}
           placeholder="Application name..."
           bind:value={searchQuery}
@@ -111,7 +120,7 @@
           type="submit"
           class={[
             "absolute",
-            "right-[5px]",
+            "right-[15px]",
             "top-[50%]",
             "transform-[translateY(-50%)]",
             "background-none",
@@ -157,7 +166,7 @@
                 "w-full",
                 "text-2xl",
                 "text-left",
-                "pl-3",
+                "pl-6",
                 "py-2",
                 "bg-(--color-bg-light)",
                 "hover:bg-(--color-bg-lightx2)",
