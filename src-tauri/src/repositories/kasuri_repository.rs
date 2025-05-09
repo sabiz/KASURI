@@ -38,6 +38,7 @@ impl KasuriRepository {
             .map_err(|e| e.into())
     }
 
+    /// Sets the last application search time in the database
     pub fn set_last_application_search_time(&self) -> KasuriResult<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -48,6 +49,7 @@ impl KasuriRepository {
 
     fn migrate(&self, db_version: u32) -> KasuriResult<()> {
         if db_version < 1 {
+            log::debug!("Create app_state table");
             // Application state table
             self.connection.execute(
                 "CREATE TABLE IF NOT EXISTS app_state (
@@ -61,6 +63,10 @@ impl KasuriRepository {
         Ok(())
     }
 
+    /// Saves the given key-value pair in the app_state table
+    /// # Errors
+    /// Returns an error if the database operation fails  
+    /// Returns Ok(()) if the operation is successful  
     fn save_state(&self, key: &str, value: &str) -> KasuriResult<()> {
         let mut statement = self
             .connection
@@ -74,6 +80,11 @@ impl KasuriRepository {
         Ok(())
     }
 
+    /// Retrieves the value associated with the given key from the app_state table
+    /// # Errors
+    /// Returns an error if the database operation fails  
+    /// Returns Ok(None) if the key does not exist in the table  
+    /// Returns Ok(Some(value)) if the key exists and the value is retrieved successfully  
     fn get_state(&self, key: &str) -> KasuriResult<Option<String>> {
         let mut statement = self
             .connection

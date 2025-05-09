@@ -1,5 +1,4 @@
 use crate::core::kasuri::KasuriResult;
-use crate::log_info;
 use crate::model::application::Application;
 use sqlite::ConnectionThreadSafe;
 use sqlite::State::Row;
@@ -55,7 +54,7 @@ impl ApplicationRepository {
             .collect::<Vec<&&Application>>();
 
         if delete_applications.len() > 0 {
-            log_info!("Deleting applications: {:?}", delete_applications);
+            log::info!("Deleting applications: {:?}", delete_applications);
             let param_count_question = (0..delete_applications.len())
                 .map(|_| "?")
                 .collect::<Vec<_>>()
@@ -74,7 +73,7 @@ impl ApplicationRepository {
         }
 
         if new_applications.len() > 0 {
-            log_info!("Inserting new applications: {:?}", new_applications);
+            log::info!("Inserting new applications: {:?}", new_applications);
             let values_placeholders = (0..new_applications.len())
                 .map(|_| "(?, ?, ?)")
                 .collect::<Vec<_>>()
@@ -114,6 +113,7 @@ impl ApplicationRepository {
 
     fn migrate(&self, db_version: u32) -> KasuriResult<()> {
         if db_version < 1 {
+            log::debug!("Creating applications table");
             self.connection.execute(
                 "CREATE TABLE IF NOT EXISTS applications (
                     app_id TEXT PRIMARY KEY,

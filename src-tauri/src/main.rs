@@ -8,7 +8,7 @@ mod service;
 
 fn main() {
     if let Err(e) = core::kasuri::run() {
-        log_error!("Kasuri error: {}", e);
+        log::error!("Kasuri error: {}", e);
         std::process::exit(1);
     }
 }
