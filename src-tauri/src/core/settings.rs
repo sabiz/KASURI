@@ -19,6 +19,7 @@ pub struct Settings {
     application_search_path_list: Vec<String>,
     application_search_interval_on_startup_minute: u64,
     log_level: String,
+    width: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -26,6 +27,7 @@ struct PartialSettings {
     application_search_path_list: Option<Vec<String>>,
     application_search_interval_on_startup_minute: Option<u64>,
     log_level: Option<String>,
+    width: Option<u32>,
 }
 
 impl Settings {
@@ -55,6 +57,11 @@ impl Settings {
     /// Returns the log level
     pub fn get_log_level(&self) -> String {
         self.log_level.clone()
+    }
+
+    /// Returns the width of Window
+    pub fn get_width(&self) -> u32 {
+        self.width
     }
 
     /// Check if the settings file exists
@@ -90,6 +97,9 @@ impl Settings {
             log_level: partial_settings
                 .log_level
                 .unwrap_or_else(|| default_settings.log_level),
+            width: partial_settings
+                .width
+                .unwrap_or_else(|| default_settings.width),
         };
 
         Ok(settings)

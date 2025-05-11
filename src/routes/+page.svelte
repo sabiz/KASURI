@@ -1,8 +1,8 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
 
   const INVOKE_SEARCH_APPLICATION = "search_application";
+  const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
 
   interface Application {
     name: string;
@@ -12,14 +12,21 @@
   let searchQuery = $state("");
   let suggestions = $state<Application[]>([]);
   let showSuggestions = $state(true);
-  let searchForm: HTMLFormElement | null = null;
+  let selectedSuggestionIndex = $state(-1);
+  let suggestionListElement = $state<HTMLElement | null>(null);
+  let searchFormElement: HTMLFormElement | null = null;
+  let mainElement: HTMLElement | null = null;
   let searchInputClass = $state("");
+  let lastSendContentSize = 0;
+
   $effect(() => {
     searchInputClass =
       showSuggestions && suggestions.length > 0
         ? "border-x-1 border-t-1 border-b-0 rounded-t-lg"
         : "border-1 rounded-lg";
+    send_content_size();
   });
+
   /*
    * handle the input event of the search input field.
    */
@@ -27,6 +34,7 @@
     if (searchQuery.trim() === "") {
       suggestions = [];
       showSuggestions = false;
+      selectedSuggestionIndex = -1;
       return;
     }
 
@@ -35,6 +43,42 @@
     });
     suggestions = result as Application[];
     showSuggestions = true;
+    selectedSuggestionIndex = 0;
+    await send_content_size();
+  }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    console.log("Key pressed:", event.key);
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      // TODO Close window
+    }
+
+    switch (event.key) {
+      case "ArrowDown":
+        moveSuggestion(1);
+        break;
+      case "ArrowUp":
+        moveSuggestion(-1);
+        break;
+    }
+  }
+  function moveSuggestion(direction: number) {
+    if (suggestions.length === 0 || !showSuggestions) return;
+    selectedSuggestionIndex =
+      (selectedSuggestionIndex + direction + suggestions.length) %
+      suggestions.length;
+
+    if (!suggestionListElement) return;
+    const selectedElement = suggestionListElement.children[
+      selectedSuggestionIndex
+    ] as HTMLElement;
+    if (!selectedElement) return;
+    selectedElement.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+    });
   }
 
   /*
@@ -43,8 +87,10 @@
   function selectSuggestion(suggestion: string) {
     searchQuery = suggestion;
     showSuggestions = false;
-    if (searchForm) {
-      searchForm.dispatchEvent(new Event("submit", { cancelable: true }));
+    if (searchFormElement) {
+      searchFormElement.dispatchEvent(
+        new Event("submit", { cancelable: true }),
+      );
     }
   }
 
@@ -56,25 +102,35 @@
     showSuggestions = false;
   }
 
-  // async function greet(event: Event) {
-  //   event.preventDefault();
-  //   // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-  //   greetMsg = await invoke("greet", { name });
-  // }
+  // send the content size to the backend
+  async function send_content_size() {
+    if (lastSendContentSize === mainElement?.offsetHeight) {
+      return;
+    }
+    await invoke(INVOKE_CHANGED_CONTENT_SIZE, {
+      contentHeight: mainElement?.offsetHeight,
+    });
+    lastSendContentSize = mainElement?.offsetHeight || 0;
+  }
 </script>
 
-<main class={["w-full", "h-full", "bg-transparent"]}>
+<svelte:window on:keydown={handleKeyDown} />
+
+<main
+  class={["w-full", "bg-transparent", "overflow-hidden"]}
+  bind:this={mainElement}
+>
   <div class={["w-full"]}>
     <form
       class={["w-full", "relative"]}
       onsubmit={handleSearch}
-      bind:this={searchForm}
+      bind:this={searchFormElement}
     >
       <div
         data-tauri-drag-region
         class={[
           "w-full",
-          "display-flex",
+          "flex",
           "relative",
           "bg-(--color-bg)",
           "border-solid",
@@ -144,8 +200,9 @@
             "overflow-auto",
             "max-h-[15em]",
           ]}
+          bind:this={suggestionListElement}
         >
-          {#each suggestions as suggestion}
+          {#each suggestions as suggestion, index}
             <button
               type="button"
               class={[
@@ -154,12 +211,19 @@
                 "text-left",
                 "pl-6",
                 "py-2",
-                "bg-(--color-bg-light)",
-                "hover:bg-(--color-bg-lightx2)",
+                index === selectedSuggestionIndex
+                  ? "bg-(--color-bg-light)"
+                  : "bg-(--color-bg-lightx2)",
                 "text-(--color-text)",
                 "last:rounded-b-lg",
               ]}
               onmousedown={() => selectSuggestion(suggestion.app_id)}
+              onfocus={() => {
+                selectedSuggestionIndex = index;
+              }}
+              onmouseover={() => {
+                selectedSuggestionIndex = index;
+              }}
             >
               {suggestion.name}
             </button>

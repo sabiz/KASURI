@@ -4,10 +4,6 @@
 //! It handles application search, Tauri integration, system tray functionality,
 //! and other core features.
 
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconEvent;
-use tauri::{App, Manager};
-// use crate::core::log::{self, set_file_log_level, set_stdout_log_level};
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -17,6 +13,9 @@ use crate::repositories::kasuri_repository::KasuriRepository;
 use crate::repositories::repository_initializer::RepositoryInitializer;
 use crate::service::fuzzy_sorter::FuzzySorter;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconEvent;
+use tauri::{App, LogicalSize, Manager};
 
 /// Represents a Result type for Kasuri operations.
 ///
@@ -27,13 +26,19 @@ pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 /// Maximum number of search results to display to the user.
 const SEARCH_RESULT_LIMIT: usize = 6;
 
+/// Window ID
+const WINDOW_ID: &str = "main";
+
+/// Tray icon ID
+const TRAY_ICON_ID: &str = "main";
+
 /// Main application controller for Kasuri.
 ///
 /// This struct handles application lifecycle, search functionality,
 /// and acts as the central coordinator between various components.
 struct Kasuri {
     /// Application settings loaded from configuration file.
-    settings: Settings,
+    pub settings: Settings,
     /// Repository for application data access.
     application_repository: ApplicationRepository,
     /// Repository for Kasuri's internal data.
@@ -72,14 +77,20 @@ pub fn run() -> KasuriResult<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(get_plugin_log(&settings).build())
-        .invoke_handler(tauri::generate_handler![search_application])
+        .invoke_handler(tauri::generate_handler![
+            search_application,
+            changed_content_size
+        ])
         .setup(|app| {
             log::debug!("Setup started");
             log::debug!("Settings: {:#?}", settings);
             let mut kasuri = Kasuri::with_settings(settings)?;
             kasuri.init()?;
-            app.manage(kasuri);
             create_system_tray_menu(app)?;
+            app.get_window(WINDOW_ID)
+                .expect("Failed to get main window")
+                .set_size(LogicalSize::new(*(&kasuri.settings.get_width()), 100))?;
+            app.manage(kasuri);
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -138,7 +149,7 @@ fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
 /// Returns a `KasuriResult<()>` indicating success or failure of the tray setup
 fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
     // See Tauri.toml for basic settings.
-    let tray_icon_main = app.tray_by_id("main").unwrap();
+    let tray_icon_main = app.tray_by_id(TRAY_ICON_ID).unwrap();
     let item_exit = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&item_exit])?;
     tray_icon_main.set_menu(Some(menu))?;
@@ -159,7 +170,7 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
             button: _,
         } => {
             log::debug!("Tray icon double-clicked");
-            if let Some(window) = tray_icon.app_handle().get_window("main") {
+            if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID) {
                 if !window.is_visible().unwrap_or(true) {
                     let _ = window.show();
                 }
@@ -188,6 +199,24 @@ fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<A
     log::debug!("Searching for application: {}", query);
     let kasuri = app_state.inner();
     kasuri.handle_search_application(query)
+}
+
+#[tauri::command]
+fn changed_content_size(
+    content_height: u32,
+    app_handle: tauri::AppHandle,
+    app_state: tauri::State<'_, Kasuri>,
+) {
+    log::debug!("on_Content_size_changed: {}", content_height);
+    let window = app_handle
+        .get_window(WINDOW_ID)
+        .expect("Failed to get main window");
+    window
+        .set_size(LogicalSize::new(
+            app_state.settings.get_width(),
+            content_height + 2,
+        ))
+        .unwrap();
 }
 
 impl Kasuri {
