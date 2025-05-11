@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 const INVOKE_SEARCH_APPLICATION = "search_application";
 const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
 const INVOKE_CLOSE_WINDOW = "close_window";
+const INVOKE_LAUNCH_APPLICATION = "launch_application";
 
 export interface Application {
     name: string;
@@ -60,4 +61,14 @@ export class Backend {
         await invoke(INVOKE_CLOSE_WINDOW);
     }
 
+    /**
+     * Launches an application based on the provided app ID.
+     * @param appId The ID of the application to be launched.
+     * @returns A promise that resolves when the application is launched.
+     */
+    public async launch(application: Application) {
+        await invoke(INVOKE_LAUNCH_APPLICATION, {
+            appId: application.app_id,
+        });
+    }
 }

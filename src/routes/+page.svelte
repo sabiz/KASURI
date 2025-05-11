@@ -66,6 +66,15 @@
   }
 
   /*
+   * closes the search window.
+   */
+  function closeMe() {
+    backend.close();
+    searchQuery = "";
+    handleQueryInput();
+  }
+
+  /*
    * handle the input event of the query input field.
    */
   async function handleQueryInput() {
@@ -83,14 +92,10 @@
   function handleKeyDown(event: KeyboardEvent) {
     // console.log("Key pressed:", event.key);
 
-    if (event.key === "Escape") {
-      backend.close();
-      searchQuery = "";
-      handleQueryInput();
-      return;
-    }
-
     switch (event.key) {
+      case "Escape":
+        closeMe();
+        break;
       case "ArrowDown":
         updateSelectedSuggestionIndex(false, 1);
         break;
@@ -100,23 +105,18 @@
     }
   }
 
-  // TODO Refactor below functions
-
-  // Handle search form submission
-  function handleSearch(event: Event) {
-    event.preventDefault();
-    console.log("Searching for:", searchQuery);
-  }
-  /*
-   * This function handles the selection of a suggestion from the list.
-   */
-  function selectSuggestion(suggestion: string) {
-    searchQuery = suggestion;
-    if (searchFormElement) {
-      searchFormElement.dispatchEvent(
-        new Event("submit", { cancelable: true }),
-      );
-    }
+  // Handle search form submit
+  function handleSubmit() {
+    if (
+      suggestions.length === 0 ||
+      selectedSuggestionIndex > suggestions.length
+    )
+      return;
+    const selectedSuggestion = suggestions[selectedSuggestionIndex];
+    if (!selectedSuggestion) return;
+    console.log("Selected suggestion:", selectedSuggestion);
+    backend.launch(selectedSuggestion);
+    closeMe();
   }
 </script>
 
@@ -129,7 +129,7 @@
   <div class={["w-full"]}>
     <form
       class={["w-full", "relative"]}
-      onsubmit={handleSearch}
+      onsubmit={handleSubmit}
       bind:this={searchFormElement}
     >
       <div
@@ -223,7 +223,7 @@
                 "text-(--color-text)",
                 "last:rounded-b-lg",
               ]}
-              onmousedown={() => selectSuggestion(suggestion.app_id)}
+              onmousedown={handleSubmit}
               onfocus={() => {
                 selectedSuggestionIndex = index;
               }}

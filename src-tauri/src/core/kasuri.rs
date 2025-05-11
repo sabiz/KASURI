@@ -74,7 +74,8 @@ pub fn run() -> KasuriResult<()> {
         .invoke_handler(tauri::generate_handler![
             search_application,
             changed_content_size,
-            close_window
+            close_window,
+            launch_application
         ])
         .setup(|app| {
             log::debug!("Setup started");
@@ -228,6 +229,18 @@ fn changed_content_size(
         .unwrap();
 }
 
+/// Tauri command for closing the main window.
+///
+/// This function is called when the user wants to hide or close the main window.
+/// It hides the window instead of closing it, allowing for a tray icon interaction.
+///
+/// # Arguments
+///
+/// * `app_handle` - Tauri app handle for accessing the main window
+///
+/// # Returns
+///
+/// None
 #[tauri::command]
 fn close_window(app_handle: tauri::AppHandle) {
     log::debug!("close window");
@@ -235,6 +248,15 @@ fn close_window(app_handle: tauri::AppHandle) {
         .get_window(WINDOW_ID)
         .expect("Failed to get main window");
     window.hide().unwrap();
+}
+
+#[tauri::command]
+fn launch_application(
+    app_id: String,
+    app_handle: tauri::AppHandle,
+    app_state: tauri::State<'_, Kasuri>,
+) {
+    log::debug!("launch application: {}", app_id);
 }
 
 impl Kasuri {
