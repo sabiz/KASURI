@@ -1,4 +1,6 @@
-use tauri::Manager;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
+use tauri::{App, Manager};
 // use crate::core::log::{self, set_file_log_level, set_stdout_log_level};
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
@@ -42,6 +44,7 @@ pub fn run() -> KasuriResult<()> {
             let mut kasuri = Kasuri::with_settings(settings)?;
             kasuri.init()?;
             app.manage(kasuri);
+            create_system_tray_menu(app)?;
             Ok(())
         })
         .run(tauri::generate_context!())
@@ -72,6 +75,24 @@ fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
                 message
             ))
         })
+}
+
+fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
+    // See Tauri.toml for basic settings.
+    let tray_icon_main = app.tray_by_id("main").unwrap();
+    let item_exit = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&item_exit])?;
+    tray_icon_main.set_menu(Some(menu))?;
+    tray_icon_main.on_menu_event(|app, event| match event.id.as_ref() {
+        "exit" => {
+            log::debug!("Exit menu item clicked");
+            app.exit(0);
+        }
+        _ => {
+            log::warn!("Unknown menu item clicked: {}", event.id.0);
+        }
+    });
+    Ok(())
 }
 
 #[tauri::command]
