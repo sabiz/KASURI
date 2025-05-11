@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 const INVOKE_SEARCH_APPLICATION = "search_application";
 const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
+const INVOKE_CLOSE_WINDOW = "close_window";
 
 export interface Application {
     name: string;
@@ -49,6 +50,14 @@ export class Backend {
         await invoke(INVOKE_CHANGED_CONTENT_SIZE, {
             contentHeight: contentSize
         });
+    }
+
+    /**
+     * Closes the window.
+     * @returns A promise that resolves when the window is closed.
+     */
+    public async close() {
+        await invoke(INVOKE_CLOSE_WINDOW);
     }
 
 }

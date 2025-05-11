@@ -9,7 +9,7 @@
   let suggestionListElement = $state<HTMLElement | null>(null);
   let searchFormElement: HTMLFormElement | null = null;
   let queryInputClass = $state("");
-  let lastSendContentSize = 0;
+
   let backend = new Backend();
 
   $effect.pre(() => {
@@ -84,8 +84,10 @@
     // console.log("Key pressed:", event.key);
 
     if (event.key === "Escape") {
-      event.preventDefault();
-      // TODO Close window
+      backend.close();
+      searchQuery = "";
+      handleQueryInput();
+      return;
     }
 
     switch (event.key) {

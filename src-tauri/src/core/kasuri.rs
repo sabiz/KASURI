@@ -73,7 +73,8 @@ pub fn run() -> KasuriResult<()> {
         .plugin(get_plugin_log(&settings).build())
         .invoke_handler(tauri::generate_handler![
             search_application,
-            changed_content_size
+            changed_content_size,
+            close_window
         ])
         .setup(|app| {
             log::debug!("Setup started");
@@ -225,6 +226,15 @@ fn changed_content_size(
             content_height + 2,
         ))
         .unwrap();
+}
+
+#[tauri::command]
+fn close_window(app_handle: tauri::AppHandle) {
+    log::debug!("close window");
+    let window = app_handle
+        .get_window(WINDOW_ID)
+        .expect("Failed to get main window");
+    window.hide().unwrap();
 }
 
 impl Kasuri {
