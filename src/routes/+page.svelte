@@ -1,73 +1,57 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import type { Application } from "../core/backend";
+  import { Backend } from "../core/backend";
 
-  const INVOKE_SEARCH_APPLICATION = "search_application";
-  const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
-
-  interface Application {
-    name: string;
-    app_id: string;
-  }
-
+  let mainElement: HTMLElement | null = null;
   let searchQuery = $state("");
   let suggestions = $state<Application[]>([]);
-  let showSuggestions = $state(true);
   let selectedSuggestionIndex = $state(-1);
   let suggestionListElement = $state<HTMLElement | null>(null);
   let searchFormElement: HTMLFormElement | null = null;
-  let mainElement: HTMLElement | null = null;
-  let searchInputClass = $state("");
+  let queryInputClass = $state("");
   let lastSendContentSize = 0;
+  let backend = new Backend();
+
+  $effect.pre(() => {
+    // Set the initial state of the search query
+    updateSelectedSuggestionIndex(true);
+  });
 
   $effect(() => {
-    searchInputClass =
-      showSuggestions && suggestions.length > 0
-        ? "border-x-1 border-t-1 border-b-0 rounded-t-lg"
-        : "border-1 rounded-lg";
-    send_content_size();
+    updateQueryInputClass();
+    backend.sendContentSize(mainElement?.clientHeight || 0);
   });
 
   /*
-   * handle the input event of the search input field.
+   * updates the class of the search input field based on the
+   * state of the suggestions.
    */
-  async function handleSearchInput() {
-    if (searchQuery.trim() === "") {
-      suggestions = [];
-      showSuggestions = false;
+  function updateQueryInputClass() {
+    if (suggestions.length > 0) {
+      queryInputClass = "border-x-1 border-t-1 border-b-0 rounded-t-lg";
+    } else {
+      queryInputClass = "border-1 rounded-lg";
+    }
+  }
+
+  /*
+   * updates the selected suggestion index based on the
+   * current state of the suggestions.
+   */
+  function updateSelectedSuggestionIndex(
+    byEffect: boolean = false,
+    moveDirection: number = 0,
+  ) {
+    if (suggestions.length === 0) {
       selectedSuggestionIndex = -1;
       return;
     }
-
-    let result = await invoke(INVOKE_SEARCH_APPLICATION, {
-      query: searchQuery,
-    });
-    suggestions = result as Application[];
-    showSuggestions = true;
-    selectedSuggestionIndex = 0;
-    await send_content_size();
-  }
-
-  function handleKeyDown(event: KeyboardEvent) {
-    console.log("Key pressed:", event.key);
-
-    if (event.key === "Escape") {
-      event.preventDefault();
-      // TODO Close window
+    if (byEffect) {
+      selectedSuggestionIndex = 0;
+      return;
     }
-
-    switch (event.key) {
-      case "ArrowDown":
-        moveSuggestion(1);
-        break;
-      case "ArrowUp":
-        moveSuggestion(-1);
-        break;
-    }
-  }
-  function moveSuggestion(direction: number) {
-    if (suggestions.length === 0 || !showSuggestions) return;
     selectedSuggestionIndex =
-      (selectedSuggestionIndex + direction + suggestions.length) %
+      (selectedSuggestionIndex + moveDirection + suggestions.length) %
       suggestions.length;
 
     if (!suggestionListElement) return;
@@ -82,35 +66,55 @@
   }
 
   /*
-   * This function handles the selection of a suggestion from the list.
+   * handle the input event of the query input field.
    */
-  function selectSuggestion(suggestion: string) {
-    searchQuery = suggestion;
-    showSuggestions = false;
-    if (searchFormElement) {
-      searchFormElement.dispatchEvent(
-        new Event("submit", { cancelable: true }),
-      );
+  async function handleQueryInput() {
+    if (searchQuery.trim() === "") {
+      suggestions = [];
+      return;
+    }
+    let result = await backend.searchApplication(searchQuery);
+    suggestions = result as Application[];
+  }
+
+  /*
+   * handle the keydown event of the window.
+   */
+  function handleKeyDown(event: KeyboardEvent) {
+    // console.log("Key pressed:", event.key);
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      // TODO Close window
+    }
+
+    switch (event.key) {
+      case "ArrowDown":
+        updateSelectedSuggestionIndex(false, 1);
+        break;
+      case "ArrowUp":
+        updateSelectedSuggestionIndex(false, -1);
+        break;
     }
   }
+
+  // TODO Refactor below functions
 
   // Handle search form submission
   function handleSearch(event: Event) {
     event.preventDefault();
     console.log("Searching for:", searchQuery);
-    // Here you would typically process the search
-    showSuggestions = false;
   }
-
-  // send the content size to the backend
-  async function send_content_size() {
-    if (lastSendContentSize === mainElement?.offsetHeight) {
-      return;
+  /*
+   * This function handles the selection of a suggestion from the list.
+   */
+  function selectSuggestion(suggestion: string) {
+    searchQuery = suggestion;
+    if (searchFormElement) {
+      searchFormElement.dispatchEvent(
+        new Event("submit", { cancelable: true }),
+      );
     }
-    await invoke(INVOKE_CHANGED_CONTENT_SIZE, {
-      contentHeight: mainElement?.offsetHeight,
-    });
-    lastSendContentSize = mainElement?.offsetHeight || 0;
   }
 </script>
 
@@ -136,7 +140,7 @@
           "border-solid",
           "border-(--color-line)",
           "pr-3",
-          searchInputClass,
+          queryInputClass,
         ]}
       >
         <input
@@ -156,7 +160,7 @@
           ]}
           placeholder="Application name..."
           bind:value={searchQuery}
-          oninput={handleSearchInput}
+          oninput={handleQueryInput}
         />
         <button
           type="submit"
@@ -186,7 +190,7 @@
           </svg>
         </button>
       </div>
-      {#if showSuggestions && suggestions.length > 0}
+      {#if suggestions.length > 0}
         <ul
           class={[
             "w-full",
