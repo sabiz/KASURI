@@ -31,13 +31,14 @@ browserExtensionsEnabled = false
 center = true
 closable = false
 contentProtected = true
-create = true                    # false
+create = true
 decorations = false
 devtools = true                  # false
 dragDropEnabled = false
 focus = true
 resizable = false
 skipTaskbar = false              # true
+visible = false
 transparent = true
 url = "index.html"
 

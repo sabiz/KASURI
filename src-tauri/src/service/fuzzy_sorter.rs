@@ -15,6 +15,22 @@ impl FuzzySorter {
         }
     }
 
+    /// Sorts applications based on fuzzy matching against the provided query
+    /// and filters out results below a minimum score threshold.
+    ///
+    /// This method performs the following operations:
+    /// 1. Calculates a fuzzy match score for each application name against the query
+    /// 2. Sorts applications by descending score (best matches first)
+    /// 3. Filters out applications with scores below MINIMUM_MATCH_SCORE
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - The search query string to match against application names
+    /// * `applications` - A vector of Application objects to sort and filter
+    ///
+    /// # Returns
+    ///
+    /// A sorted and filtered vector of Application objects, with best matches first
     pub fn sort_with_filter(
         &self,
         query: &str,
