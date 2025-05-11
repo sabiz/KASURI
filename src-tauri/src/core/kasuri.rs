@@ -1,9 +1,3 @@
-//! # Kasuri Core Module
-//!
-//! This module contains the main application logic for Kasuri, an application launcher.
-//! It handles application search, Tauri integration, system tray functionality,
-//! and other core features.
-
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -201,6 +195,20 @@ fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<A
     kasuri.handle_search_application(query)
 }
 
+/// Tauri command for handling content size changes.
+///
+/// This function is called when the content size of the main window changes.
+/// It updates the window size based on the new content height.
+///
+/// # Arguments
+///
+/// * `content_height` - The new content height
+/// * `app_handle` - Tauri app handle for accessing the main window
+/// * `app_state` - Tauri state containing the Kasuri instance
+///
+/// # Returns
+///
+/// None
 #[tauri::command]
 fn changed_content_size(
     content_height: u32,
