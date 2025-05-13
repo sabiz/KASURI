@@ -81,7 +81,7 @@ pub fn run() -> KasuriResult<()> {
             log::debug!("Setup started");
             log::debug!("Settings: {:#?}", settings);
             let mut kasuri = Kasuri::with_settings(settings)?;
-            kasuri.init()?;
+            kasuri.init(app.app_handle())?;
             create_system_tray_menu(app)?;
             app.get_window(WINDOW_ID)
                 .expect("Failed to get main window")
@@ -292,8 +292,14 @@ impl Kasuri {
     /// # Returns
     ///
     /// A `KasuriResult<()>` indicating success or failure of the initialization
-    pub fn init(&mut self) -> KasuriResult<()> {
-        self.app_cache = Some(self.load_applications()?);
+    pub fn init(&mut self, app_handle: &tauri::AppHandle) -> KasuriResult<()> {
+        let cache_path = app_handle
+            .path()
+            .app_cache_dir()?
+            .into_os_string()
+            .into_string()
+            .unwrap();
+        self.app_cache = Some(self.load_applications(cache_path)?);
         Ok(())
     }
 
@@ -334,7 +340,7 @@ impl Kasuri {
     /// # Returns
     ///
     /// A `KasuriResult<Vec<Application>>` containing the loaded applications or an error
-    fn load_applications(&self) -> KasuriResult<Vec<Application>> {
+    fn load_applications(&self, cache_path: String) -> KasuriResult<Vec<Application>> {
         if !self.is_search_application_needed() {
             log::debug!("Application search is not needed.");
             return self.application_repository.get_applications();
@@ -353,9 +359,11 @@ impl Kasuri {
                 }
             })
             .collect();
-        self.kasuri_repository.set_last_application_search_time()?;
-        self.application_repository
+        // self.kasuri_repository.set_last_application_search_time()?;
+        let new_applications = self
+            .application_repository
             .renew_applications(applications.clone())?;
+        Application::create_app_icon(new_applications, cache_path)?;
         Ok(applications)
     }
 

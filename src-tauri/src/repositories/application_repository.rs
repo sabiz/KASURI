@@ -31,7 +31,10 @@ impl ApplicationRepository {
     /// # Errors
     ///
     /// Returns an error if the database operation fails
-    pub fn renew_applications(&self, applications: Vec<Application>) -> KasuriResult<()> {
+    pub fn renew_applications(
+        &self,
+        applications: Vec<Application>,
+    ) -> KasuriResult<Vec<Application>> {
         let mut hash_map = applications
             .iter()
             .map(|v| (v.app_id.clone(), v))
@@ -50,8 +53,8 @@ impl ApplicationRepository {
 
         let new_applications = hash_map
             .iter()
-            .map(|(_, app)| app)
-            .collect::<Vec<&&Application>>();
+            .map(|(_, app)| (**app).clone())
+            .collect::<Vec<Application>>();
 
         if delete_applications.len() > 0 {
             log::info!("Deleting applications: {:?}", delete_applications);
@@ -72,28 +75,28 @@ impl ApplicationRepository {
             while let Ok(Row) = statement.next() {}
         }
 
-        if new_applications.len() > 0 {
-            log::info!("Inserting new applications: {:?}", new_applications);
-            let values_placeholders = (0..new_applications.len())
-                .map(|_| "(?, ?, ?)")
-                .collect::<Vec<_>>()
-                .join(", ");
+        // if new_applications.len() > 0 {
+        //     log::info!("Inserting new applications: {:?}", new_applications);
+        //     let values_placeholders = (0..new_applications.len())
+        //         .map(|_| "(?, ?, ?)")
+        //         .collect::<Vec<_>>()
+        //         .join(", ");
 
-            let mut statement = self.connection.prepare(format!(
-                "INSERT INTO applications (app_id, name, path) VALUES {};",
-                values_placeholders
-            ))?;
+        //     let mut statement = self.connection.prepare(format!(
+        //         "INSERT INTO applications (app_id, name, path) VALUES {};",
+        //         values_placeholders
+        //     ))?;
 
-            new_applications.iter().enumerate().for_each(|(i, app)| {
-                let _ = statement.bind((i * 3 + 1, app.app_id.as_str()));
-                let _ = statement.bind((i * 3 + 2, app.name.as_str()));
-                let _ = statement.bind((i * 3 + 3, app.path.as_str()));
-            });
+        //     new_applications.iter().enumerate().for_each(|(i, app)| {
+        //         let _ = statement.bind((i * 3 + 1, app.app_id.as_str()));
+        //         let _ = statement.bind((i * 3 + 2, app.name.as_str()));
+        //         let _ = statement.bind((i * 3 + 3, app.path.as_str()));
+        //     });
 
-            while let Ok(Row) = statement.next() {}
-        }
+        //     while let Ok(Row) = statement.next() {}
+        // }
 
-        Ok(())
+        Ok(new_applications)
     }
 
     pub fn get_applications(&self) -> KasuriResult<Vec<Application>> {

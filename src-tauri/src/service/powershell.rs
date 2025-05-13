@@ -7,7 +7,7 @@ pub struct PowerShell {}
 
 pub struct PowerShellResult {
     pub stdout: String,
-    pub stderr: String,
+    pub _stderr: String,
 }
 
 impl PowerShell {
@@ -34,7 +34,10 @@ impl PowerShell {
                 ),
             )));
         }
-        Ok(PowerShellResult { stdout, stderr })
+        Ok(PowerShellResult {
+            stdout,
+            _stderr: stderr,
+        })
     }
 }
 

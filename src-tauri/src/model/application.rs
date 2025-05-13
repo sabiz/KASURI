@@ -1,7 +1,14 @@
-use crate::service::powershell::{PowerShell, PowerShellResult};
+use md5::{Digest, Md5};
+use std::{path::PathBuf, str::FromStr};
+
+use crate::{
+    core::kasuri::KasuriResult,
+    service::powershell::{PowerShell, PowerShellResult},
+};
 use walkdir::WalkDir;
 
 const GET_STORE_APP_SCRIPT: &str = include_str!("../scripts/get_store_app.ps1");
+const SAVE_APP_ICON_SCRIPT: &str = include_str!("../scripts/save_app_icon.ps1");
 
 #[derive(Clone, Debug)]
 pub struct Application {
@@ -53,6 +60,51 @@ impl Application {
                 log::error!("Failed to get applications from Windows Store: {}", e);
                 Vec::new()
             })
+    }
+
+    pub fn create_app_icon(applications: Vec<Self>, store_base_path: String) -> KasuriResult<()> {
+        let powershell = PowerShell::new();
+        let (app_paths, icon_paths) = applications
+            .iter()
+            .filter(|app| app.path.contains("\\")) // ignore Windows Store apps
+            .fold((vec![], vec![]), |(mut e_path, mut i_path), app| {
+                let icon_path = PathBuf::from_str(&store_base_path)
+                    .unwrap()
+                    .join(app.get_icon_name())
+                    .into_os_string()
+                    .into_string()
+                    .unwrap();
+                e_path.push(app.path.clone());
+                i_path.push(icon_path.clone());
+                (e_path, i_path)
+            });
+        let app_paths = app_paths
+            .iter()
+            .map(|s| format!("\"{}\"", s))
+            .collect::<Vec<_>>()
+            .join(",");
+        let icon_paths = icon_paths
+            .iter()
+            .map(|s| format!("\"{}\"", s))
+            .collect::<Vec<_>>()
+            .join(",");
+        let command = SAVE_APP_ICON_SCRIPT
+            .replace("{EXE_PATH_ARR}", &app_paths)
+            .replace("{OUTPUT_PATH_ARR}", &icon_paths);
+        println!("Command: {}", command);
+        let result = powershell.run(&command);
+        if let Err(e) = result {
+            log::error!("Failed to create app icons: {}", e);
+        }
+        Ok(())
+    }
+
+    fn get_icon_name(&self) -> String {
+        let mut hasher = Md5::new();
+        hasher.update(self.app_id.as_bytes());
+        let result = hasher.finalize();
+        let hash = format!("{:x}", result);
+        format!("{}.png", hash[..16].to_string())
     }
 
     fn from_windows_store_app(store_app: &WindowsStoreApp) -> Self {
