@@ -64,20 +64,24 @@ impl Application {
 
     pub fn create_app_icon(applications: Vec<Self>, store_base_path: String) -> KasuriResult<()> {
         let powershell = PowerShell::new();
-        let (app_paths, icon_paths) = applications
-            .iter()
-            .filter(|app| app.path.contains("\\")) // ignore Windows Store apps
-            .fold((vec![], vec![]), |(mut e_path, mut i_path), app| {
-                let icon_path = PathBuf::from_str(&store_base_path)
-                    .unwrap()
-                    .join(app.get_icon_name())
-                    .into_os_string()
-                    .into_string()
-                    .unwrap();
-                e_path.push(app.path.clone());
-                i_path.push(icon_path.clone());
-                (e_path, i_path)
-            });
+        let (app_paths, icon_paths) =
+            applications
+                .iter()
+                .fold((vec![], vec![]), |(mut e_path, mut i_path), app| {
+                    let icon_path = PathBuf::from_str(&store_base_path)
+                        .unwrap()
+                        .join(app.get_icon_name())
+                        .into_os_string()
+                        .into_string()
+                        .unwrap();
+                    if app.path.contains("\\") {
+                        e_path.push(app.path.clone());
+                    } else {
+                        e_path.push(app.path.clone().split("_").collect::<Vec<_>>()[0].to_string()); // for windows store apps
+                    }
+                    i_path.push(icon_path.clone());
+                    (e_path, i_path)
+                });
         let app_paths = app_paths
             .iter()
             .map(|s| format!("\"{}\"", s))
@@ -91,11 +95,17 @@ impl Application {
         let command = SAVE_APP_ICON_SCRIPT
             .replace("{EXE_PATH_ARR}", &app_paths)
             .replace("{OUTPUT_PATH_ARR}", &icon_paths);
-        println!("Command: {}", command);
-        let result = powershell.run(&command);
-        if let Err(e) = result {
-            log::error!("Failed to create app icons: {}", e);
-        }
+        let _ = powershell
+            .run(&command)
+            .map_err(|e| {
+                log::error!("Failed to create app icon: {}", e);
+                e
+            })
+            .map(|result| {
+                log::debug!("create app icon stdout: {}", result.stdout);
+                log::warn!("create app icon : {}", result._stderr);
+            });
+
         Ok(())
     }
 

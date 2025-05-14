@@ -75,26 +75,26 @@ impl ApplicationRepository {
             while let Ok(Row) = statement.next() {}
         }
 
-        // if new_applications.len() > 0 {
-        //     log::info!("Inserting new applications: {:?}", new_applications);
-        //     let values_placeholders = (0..new_applications.len())
-        //         .map(|_| "(?, ?, ?)")
-        //         .collect::<Vec<_>>()
-        //         .join(", ");
+        if new_applications.len() > 0 {
+            log::info!("Inserting new applications: {:?}", new_applications);
+            let values_placeholders = (0..new_applications.len())
+                .map(|_| "(?, ?, ?)")
+                .collect::<Vec<_>>()
+                .join(", ");
 
-        //     let mut statement = self.connection.prepare(format!(
-        //         "INSERT INTO applications (app_id, name, path) VALUES {};",
-        //         values_placeholders
-        //     ))?;
+            let mut statement = self.connection.prepare(format!(
+                "INSERT INTO applications (app_id, name, path) VALUES {};",
+                values_placeholders
+            ))?;
 
-        //     new_applications.iter().enumerate().for_each(|(i, app)| {
-        //         let _ = statement.bind((i * 3 + 1, app.app_id.as_str()));
-        //         let _ = statement.bind((i * 3 + 2, app.name.as_str()));
-        //         let _ = statement.bind((i * 3 + 3, app.path.as_str()));
-        //     });
+            new_applications.iter().enumerate().for_each(|(i, app)| {
+                let _ = statement.bind((i * 3 + 1, app.app_id.as_str()));
+                let _ = statement.bind((i * 3 + 2, app.name.as_str()));
+                let _ = statement.bind((i * 3 + 3, app.path.as_str()));
+            });
 
-        //     while let Ok(Row) = statement.next() {}
-        // }
+            while let Ok(Row) = statement.next() {}
+        }
 
         Ok(new_applications)
     }

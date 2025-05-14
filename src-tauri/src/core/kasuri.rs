@@ -359,7 +359,7 @@ impl Kasuri {
                 }
             })
             .collect();
-        // self.kasuri_repository.set_last_application_search_time()?;
+        self.kasuri_repository.set_last_application_search_time()?;
         let new_applications = self
             .application_repository
             .renew_applications(applications.clone())?;
