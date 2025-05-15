@@ -15,6 +15,7 @@ pub struct Application {
     pub name: String,
     pub app_id: String,
     pub path: String,
+    pub icon_path: Option<String>,
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -26,7 +27,12 @@ struct WindowsStoreApp {
 
 impl Application {
     pub fn new(name: String, app_id: String, path: String) -> Self {
-        Self { name, app_id, path }
+        Self {
+            name,
+            app_id,
+            path,
+            icon_path: None,
+        }
     }
 
     pub fn from_path(path: &str) -> Vec<Self> {
@@ -62,7 +68,7 @@ impl Application {
             })
     }
 
-    pub fn create_app_icon(applications: Vec<Self>, store_base_path: String) -> KasuriResult<()> {
+    pub fn create_app_icon(applications: Vec<Self>, store_base_path: &String) -> KasuriResult<()> {
         let powershell = PowerShell::new();
         let (app_paths, icon_paths) =
             applications
@@ -109,7 +115,7 @@ impl Application {
         Ok(())
     }
 
-    fn get_icon_name(&self) -> String {
+    pub fn get_icon_name(&self) -> String {
         let mut hasher = Md5::new();
         hasher.update(self.app_id.as_bytes());
         let result = hasher.finalize();

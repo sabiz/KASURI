@@ -13,6 +13,12 @@ withGlobalTauri = false
 
 [app.security]
 capabilities = ["default"]
+csp = "default-src 'self' img-src 'self' asset: http://asset.localhost"
+
+[app.security.assetProtocol]
+enable = true
+[app.security.assetProtocol.scope]
+allow = ["$APPCACHE/*.png"]
 
 [app.trayIcon]
 iconPath = "icons/kasuri.ico"

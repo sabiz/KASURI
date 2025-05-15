@@ -109,7 +109,12 @@ impl ApplicationRepository {
             let name = statement.read::<String, _>(1)?;
             let path = statement.read::<String, _>(2)?;
 
-            applications.push(Application { app_id, name, path });
+            applications.push(Application {
+                app_id,
+                name,
+                path,
+                icon_path: None,
+            });
         }
         Ok(applications)
     }

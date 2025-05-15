@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Application } from "../core/backend";
   import { Backend } from "../core/backend";
+  import { convertFileSrc } from "@tauri-apps/api/core";
 
   let mainElement: HTMLElement | null = null;
   let searchQuery = $state("");
@@ -11,6 +12,46 @@
   let queryInputClass = $state("");
 
   let backend = new Backend();
+
+  /**
+   * Generates a consistent color based on the application name.
+   * @param name - The application name
+   * @returns A hex color string
+   */
+  function getColorFromName(name: string): string {
+    // List of predefined colors with good contrast for white text
+    const colors = [
+      "#4285F4", // Google Blue
+      "#EA4335", // Google Red
+      "#FBBC05", // Google Yellow
+      "#34A853", // Google Green
+      "#5E35B1", // Deep Purple
+      "#00897B", // Teal
+      "#43A047", // Green
+      "#E53935", // Red
+      "#1E88E5", // Blue
+      "#F4511E", // Deep Orange
+      "#C0CA33", // Lime
+      "#8E24AA", // Purple
+      "#00ACC1", // Cyan
+      "#3949AB", // Indigo
+      "#7CB342", // Light Green
+      "#039BE5", // Light Blue
+      "#D81B60", // Pink
+      "#6D4C41", // Brown
+      "#757575", // Grey
+    ];
+
+    // Create a simple hash from the name
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    // Use the hash to get a consistent index in our colors array
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  }
 
   $effect.pre(() => {
     // Set the initial state of the search query
@@ -231,6 +272,39 @@
                 selectedSuggestionIndex = index;
               }}
             >
+              {#if suggestion.icon_path}
+                <img
+                  src={convertFileSrc(suggestion.icon_path)}
+                  alt={suggestion.name}
+                  class={["w-[32px]", "h-[32px]", "inline-block", "mr-1"]}
+                />
+              {:else}
+                <svg
+                  viewBox="0 0 32 32"
+                  class={["w-[32px]", "h-[32px]", "mr-1", "inline-block"]}
+                >
+                  <rect
+                    x="1"
+                    y="1"
+                    width="30"
+                    height="30"
+                    rx="5"
+                    ry="5"
+                    fill={getColorFromName(suggestion.name)}
+                  />
+                  <text
+                    x="16"
+                    y="16"
+                    font-size="16"
+                    font-weight="bold"
+                    text-anchor="middle"
+                    dominant-baseline="central"
+                    fill="white"
+                  >
+                    {suggestion.name.charAt(0).toUpperCase()}
+                  </text>
+                </svg>
+              {/if}
               {suggestion.name}
             </button>
           {/each}

@@ -8,6 +8,7 @@ const INVOKE_LAUNCH_APPLICATION = "launch_application";
 export interface Application {
     name: string;
     app_id: string;
+    icon_path: string;
 }
 
 export class Backend {

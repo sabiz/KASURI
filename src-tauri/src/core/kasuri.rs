@@ -6,6 +6,8 @@ use crate::repositories::application_repository::ApplicationRepository;
 use crate::repositories::kasuri_repository::KasuriRepository;
 use crate::repositories::repository_initializer::RepositoryInitializer;
 use crate::service::fuzzy_sorter::FuzzySorter;
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconEvent;
@@ -53,6 +55,8 @@ struct AppForView {
     name: String,
     /// Unique identifier for the application
     app_id: String,
+    /// Path to the application icon
+    icon_path: String,
 }
 
 /// Initializes and runs the Kasuri application.
@@ -191,10 +195,14 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
 ///
 /// A vector of simplified application objects for display in the UI
 #[tauri::command]
-fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<AppForView> {
+fn search_application(
+    query: &str,
+    app_handle: tauri::AppHandle,
+    app_state: tauri::State<'_, Kasuri>,
+) -> Vec<AppForView> {
     log::debug!("Searching for application: {}", query);
     let kasuri = app_state.inner();
-    kasuri.handle_search_application(query)
+    kasuri.handle_search_application(query, &app_handle)
 }
 
 /// Tauri command for handling content size changes.
@@ -318,7 +326,11 @@ impl Kasuri {
     /// # Returns
     ///
     /// A vector of simplified application objects ready to be displayed in the UI
-    pub fn handle_search_application(&self, query: &str) -> Vec<AppForView> {
+    pub fn handle_search_application(
+        &self,
+        query: &str,
+        app_handle: &tauri::AppHandle,
+    ) -> Vec<AppForView> {
         let applications = self.app_cache.clone().unwrap_or_default();
         let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
         let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);
@@ -328,6 +340,7 @@ impl Kasuri {
             .map(|app| AppForView {
                 name: app.name.clone(),
                 app_id: app.app_id.clone(),
+                icon_path: app.icon_path.clone().unwrap_or_default(),
             })
             .collect()
     }
@@ -341,29 +354,41 @@ impl Kasuri {
     ///
     /// A `KasuriResult<Vec<Application>>` containing the loaded applications or an error
     fn load_applications(&self, cache_path: String) -> KasuriResult<Vec<Application>> {
+        let mut applications: Vec<Application>;
         if !self.is_search_application_needed() {
             log::debug!("Application search is not needed.");
-            return self.application_repository.get_applications();
+            applications = self.application_repository.get_applications()?;
+        } else {
+            // Load applications from the specified paths
+            applications = self
+                .settings
+                .get_application_search_path_list()
+                .iter()
+                .flat_map(|path| {
+                    log::debug!("Loading applications from: {}", path);
+                    if path == SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP {
+                        Application::from_app_store()
+                    } else {
+                        Application::from_path(path)
+                    }
+                })
+                .collect();
+            self.kasuri_repository.set_last_application_search_time()?;
+            let new_applications = self
+                .application_repository
+                .renew_applications(applications.clone())?;
+            Application::create_app_icon(new_applications, &cache_path)?;
         }
-        // Load applications from the specified paths
-        let applications: Vec<Application> = self
-            .settings
-            .get_application_search_path_list()
-            .iter()
-            .flat_map(|path| {
-                log::debug!("Loading applications from: {}", path);
-                if path == SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP {
-                    Application::from_app_store()
-                } else {
-                    Application::from_path(path)
-                }
-            })
-            .collect();
-        self.kasuri_repository.set_last_application_search_time()?;
-        let new_applications = self
-            .application_repository
-            .renew_applications(applications.clone())?;
-        Application::create_app_icon(new_applications, cache_path)?;
+        let cache_path = PathBuf::from_str(cache_path.as_str())?;
+        applications.iter_mut().for_each(|app| {
+            app.icon_path = Some(
+                cache_path
+                    .clone()
+                    .join(app.get_icon_name())
+                    .to_string_lossy()
+                    .to_string(),
+            );
+        });
         Ok(applications)
     }
 
