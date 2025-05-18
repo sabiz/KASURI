@@ -137,16 +137,34 @@ impl Application {
     }
 
     fn launch_exe(&self) -> KasuriResult<()> {
-        open::that_detached(OsStr::new(self.path.as_str()))?;
+        open::that_detached(OsStr::new(self.path.as_str())).map_err(|e| {
+            log::error!("Failed to launch exe: {}", e);
+            e
+        })?;
         Ok(())
     }
 
     fn launch_lnk(&self) -> KasuriResult<()> {
-        open::that_detached(OsStr::new(self.path.as_str()))?;
+        open::that_detached(OsStr::new(self.path.as_str())).map_err(|e| {
+            log::error!("Failed to launch lnk: {}", e);
+            e
+        })?;
         Ok(())
     }
 
     fn launch_store_app(&self) -> KasuriResult<()> {
+        let powershell = PowerShell::new();
+        let command = format!("Start-Process \"shell:AppsFolder\\{}\"", self.app_id);
+        powershell
+            .run(&command)
+            .map_err(|e| {
+                log::error!("Failed to launch store app: {}", e);
+                e
+            })
+            .map(|result| {
+                log::debug!("Launch store app stdout: {}", result.stdout);
+                log::warn!("Launch store app stderr: {}", result._stderr);
+            })?;
         Ok(())
     }
 
