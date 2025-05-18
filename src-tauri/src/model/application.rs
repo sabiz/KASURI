@@ -1,5 +1,5 @@
 use md5::{Digest, Md5};
-use std::{path::PathBuf, str::FromStr};
+use std::{ffi::OsStr, path::PathBuf, str::FromStr};
 
 use crate::{
     core::kasuri::KasuriResult,
@@ -121,6 +121,33 @@ impl Application {
         let result = hasher.finalize();
         let hash = format!("{:x}", result);
         format!("{}.png", hash[..16].to_string())
+    }
+
+    pub fn launch(&self) -> KasuriResult<()> {
+        match self.path.as_str() {
+            path if path.ends_with(".exe") => self.launch_exe()?,
+            path if path.ends_with(".lnk") => self.launch_lnk()?,
+            path if !path.contains("\\") => self.launch_store_app()?,
+            _ => {
+                log::error!("Invalid application path: {}", self.path);
+                return Err("Invalid application path".into());
+            }
+        }
+        Ok(())
+    }
+
+    fn launch_exe(&self) -> KasuriResult<()> {
+        open::that_detached(OsStr::new(self.path.as_str()))?;
+        Ok(())
+    }
+
+    fn launch_lnk(&self) -> KasuriResult<()> {
+        open::that_detached(OsStr::new(self.path.as_str()))?;
+        Ok(())
+    }
+
+    fn launch_store_app(&self) -> KasuriResult<()> {
+        Ok(())
     }
 
     fn from_windows_store_app(store_app: &WindowsStoreApp) -> Self {

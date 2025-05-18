@@ -2007,6 +2007,7 @@ dependencies = [
  "fuzzy-matcher",
  "log",
  "md-5",
+ "open",
  "serde",
  "serde_json",
  "sqlite",

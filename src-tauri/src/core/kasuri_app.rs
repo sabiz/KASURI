@@ -148,6 +148,7 @@ fn launch_application(
     app_state: tauri::State<'_, Kasuri>,
 ) {
     log::debug!("launch application: {}", app_id);
+    let _ = app_state.inner().handle_launch_application(&app_id);
 }
 
 /// Configures and returns a Tauri log plugin builder based on application settings.

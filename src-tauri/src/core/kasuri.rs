@@ -113,6 +113,36 @@ impl Kasuri {
             .collect()
     }
 
+    /// Launches the specified application using its app ID.
+    ///
+    /// This method retrieves the application from the cache and invokes its launch method.
+    /// If the application is not found in the cache, an error is logged.
+    /// # Arguments
+    ///
+    /// * `app_id` - The unique identifier of the application to launch
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<()>` indicating success or failure of the launch operation
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the application cache is not initialized or if the application is not found
+    /// in the cache.
+    pub fn handle_launch_application(&self, app_id: &str) -> KasuriResult<()> {
+        let Some(app_cache) = &self.app_cache else {
+            return Err("Application cache is not initialized".into());
+        };
+        let app = app_cache.iter().find(|app| app.app_id == app_id);
+        if let Some(app) = app {
+            log::debug!("Launching application: {}", app.name);
+            app.launch()?;
+        } else {
+            log::error!("Application with ID {} not found in cache", app_id);
+        }
+        Ok(())
+    }
+
     /// Load applications from the specified paths in settings.
     ///
     /// This method fetches applications from the file system and Windows Store
