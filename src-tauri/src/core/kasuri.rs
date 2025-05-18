@@ -1,3 +1,6 @@
+use tauri::Manager;
+
+use crate::core::kasuri_app::AppForView;
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -9,9 +12,6 @@ use crate::service::fuzzy_sorter::FuzzySorter;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconEvent;
-use tauri::{App, LogicalSize, Manager};
 
 /// Represents a Result type for Kasuri operations.
 ///
@@ -22,17 +22,11 @@ pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 /// Maximum number of search results to display to the user.
 const SEARCH_RESULT_LIMIT: usize = 6;
 
-/// Window ID
-const WINDOW_ID: &str = "main";
-
-/// Tray icon ID
-const TRAY_ICON_ID: &str = "main";
-
 /// Main application controller for Kasuri.
 ///
 /// This struct handles application lifecycle, search functionality,
 /// and acts as the central coordinator between various components.
-struct Kasuri {
+pub struct Kasuri {
     /// Application settings loaded from configuration file.
     pub settings: Settings,
     /// Repository for application data access.
@@ -43,228 +37,6 @@ struct Kasuri {
     fuzzy_sorter: FuzzySorter,
     /// In-memory cache of available applications.
     app_cache: Option<Vec<Application>>,
-}
-
-/// Simplified application data structure used for passing to the UI layer.
-///
-/// This structure contains only the fields needed for displaying
-/// and selecting applications in the user interface.
-#[derive(serde::Serialize)]
-struct AppForView {
-    /// Display name of the application
-    name: String,
-    /// Unique identifier for the application
-    app_id: String,
-    /// Path to the application icon
-    icon_path: String,
-}
-
-/// Initializes and runs the Kasuri application.
-///
-/// This function is the main entry point for the Kasuri application.
-/// It loads settings, sets up the Tauri application with necessary plugins,
-/// initializes the Kasuri controller, and launches the UI.
-///
-/// # Returns
-///
-/// Returns a `KasuriResult<()>` which is `Ok(())` if the application runs and exits normally,
-/// or an error if initialization fails.
-pub fn run() -> KasuriResult<()> {
-    let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
-
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(get_plugin_log(&settings).build())
-        .invoke_handler(tauri::generate_handler![
-            search_application,
-            changed_content_size,
-            close_window,
-            launch_application
-        ])
-        .setup(|app| {
-            log::debug!("Setup started");
-            log::debug!("Settings: {:#?}", settings);
-            let mut kasuri = Kasuri::with_settings(settings)?;
-            kasuri.init(app.app_handle())?;
-            create_system_tray_menu(app)?;
-            app.get_window(WINDOW_ID)
-                .expect("Failed to get main window")
-                .set_size(LogicalSize::new(*(&kasuri.settings.get_width()), 100))?;
-            app.manage(kasuri);
-            Ok(())
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running kasuri");
-    Ok(())
-}
-
-/// Configures and returns a Tauri log plugin builder based on application settings.
-///
-/// This function sets up logging for the application with appropriate levels, formatting,
-/// and output targets based on the provided settings.
-///
-/// # Arguments
-///
-/// * `settings` - The application settings containing log configuration
-///
-/// # Returns
-///
-/// A configured Tauri log plugin builder
-fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
-    tauri_plugin_log::Builder::new()
-        .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
-        .target(tauri_plugin_log::Target::new(
-            tauri_plugin_log::TargetKind::LogDir {
-                file_name: Some("logs".to_string()), // log to %APPDATA%\Local\jp.sabiz.kasuri\logs
-            },
-        ))
-        .level(match settings.get_log_level().as_str() {
-            "error" => log::LevelFilter::Error,
-            "warn" => log::LevelFilter::Warn,
-            "info" => log::LevelFilter::Info,
-            "debug" => log::LevelFilter::Debug,
-            _ => log::LevelFilter::Info,
-        })
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{} {} {}",
-                tauri_plugin_log::TimezoneStrategy::UseLocal.get_now(),
-                record.level(),
-                message
-            ))
-        })
-}
-
-/// Creates and configures the system tray menu for the application.
-///
-/// Sets up the tray icon, menu items, and event handlers for tray interactions.
-/// Currently includes an exit menu item and double-click behavior to show the main window.
-///
-/// # Arguments
-///
-/// * `app` - The Tauri app instance
-///
-/// # Returns
-///
-/// Returns a `KasuriResult<()>` indicating success or failure of the tray setup
-fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
-    // See Tauri.toml for basic settings.
-    let tray_icon_main = app.tray_by_id(TRAY_ICON_ID).unwrap();
-    let item_exit = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&item_exit])?;
-    tray_icon_main.set_menu(Some(menu))?;
-    tray_icon_main.on_menu_event(|app, event| match event.id.as_ref() {
-        "exit" => {
-            log::debug!("Exit menu item clicked");
-            app.exit(0);
-        }
-        _ => {
-            log::warn!("Unknown menu item clicked: {}", event.id.0);
-        }
-    });
-    tray_icon_main.on_tray_icon_event(|tray_icon, event| match event {
-        TrayIconEvent::DoubleClick {
-            id: _,
-            position: _,
-            rect: _,
-            button: _,
-        } => {
-            log::debug!("Tray icon double-clicked");
-            if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID) {
-                if !window.is_visible().unwrap_or(true) {
-                    let _ = window.show();
-                }
-            }
-        }
-        _ => {}
-    });
-    Ok(())
-}
-
-/// Tauri command for searching applications based on user input.
-///
-/// This function is exposed to the frontend and allows the UI to search for applications
-/// using a query string. It delegates to the Kasuri instance managed by Tauri's state.
-///
-/// # Arguments
-///
-/// * `query` - The search query string provided by the user
-/// * `app_state` - Tauri state containing the Kasuri instance
-///
-/// # Returns
-///
-/// A vector of simplified application objects for display in the UI
-#[tauri::command]
-fn search_application(
-    query: &str,
-    app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
-) -> Vec<AppForView> {
-    log::debug!("Searching for application: {}", query);
-    let kasuri = app_state.inner();
-    kasuri.handle_search_application(query, &app_handle)
-}
-
-/// Tauri command for handling content size changes.
-///
-/// This function is called when the content size of the main window changes.
-/// It updates the window size based on the new content height.
-///
-/// # Arguments
-///
-/// * `content_height` - The new content height
-/// * `app_handle` - Tauri app handle for accessing the main window
-/// * `app_state` - Tauri state containing the Kasuri instance
-///
-/// # Returns
-///
-/// None
-#[tauri::command]
-fn changed_content_size(
-    content_height: u32,
-    app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
-) {
-    log::debug!("on_Content_size_changed: {}", content_height);
-    let window = app_handle
-        .get_window(WINDOW_ID)
-        .expect("Failed to get main window");
-    window
-        .set_size(LogicalSize::new(
-            app_state.settings.get_width(),
-            content_height + 2,
-        ))
-        .unwrap();
-}
-
-/// Tauri command for closing the main window.
-///
-/// This function is called when the user wants to hide or close the main window.
-/// It hides the window instead of closing it, allowing for a tray icon interaction.
-///
-/// # Arguments
-///
-/// * `app_handle` - Tauri app handle for accessing the main window
-///
-/// # Returns
-///
-/// None
-#[tauri::command]
-fn close_window(app_handle: tauri::AppHandle) {
-    log::debug!("close window");
-    let window = app_handle
-        .get_window(WINDOW_ID)
-        .expect("Failed to get main window");
-    window.hide().unwrap();
-}
-
-#[tauri::command]
-fn launch_application(
-    app_id: String,
-    app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
-) {
-    log::debug!("launch application: {}", app_id);
 }
 
 impl Kasuri {
@@ -326,11 +98,7 @@ impl Kasuri {
     /// # Returns
     ///
     /// A vector of simplified application objects ready to be displayed in the UI
-    pub fn handle_search_application(
-        &self,
-        query: &str,
-        app_handle: &tauri::AppHandle,
-    ) -> Vec<AppForView> {
+    pub fn handle_search_application(&self, query: &str) -> Vec<AppForView> {
         let applications = self.app_cache.clone().unwrap_or_default();
         let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
         let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);

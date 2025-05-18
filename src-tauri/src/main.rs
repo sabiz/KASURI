@@ -7,7 +7,7 @@ mod repositories;
 mod service;
 
 fn main() {
-    if let Err(e) = core::kasuri::run() {
+    if let Err(e) = core::kasuri_app::run() {
         log::error!("Kasuri error: {}", e);
         std::process::exit(1);
     }
