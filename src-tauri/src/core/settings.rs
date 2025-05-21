@@ -20,6 +20,7 @@ pub struct Settings {
     application_search_interval_on_startup_minute: u64,
     log_level: String,
     width: u32,
+    auto_startup: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -28,6 +29,7 @@ struct PartialSettings {
     application_search_interval_on_startup_minute: Option<u64>,
     log_level: Option<String>,
     width: Option<u32>,
+    auto_startup: Option<bool>,
 }
 
 impl Settings {
@@ -62,6 +64,11 @@ impl Settings {
     /// Returns the width of Window
     pub fn get_width(&self) -> u32 {
         self.width
+    }
+
+    /// Returns the auto startup setting
+    pub fn get_auto_startup(&self) -> bool {
+        self.auto_startup
     }
 
     /// Check if the settings file exists
@@ -100,6 +107,9 @@ impl Settings {
             width: partial_settings
                 .width
                 .unwrap_or_else(|| default_settings.width),
+            auto_startup: partial_settings
+                .auto_startup
+                .unwrap_or_else(|| default_settings.auto_startup),
         };
 
         Ok(settings)

@@ -6,3 +6,4 @@ application_search_path_list = [
 application_search_interval_on_startup_minute = 10080
 log_level = "info"
 width = 800
+auto_startup = false

@@ -4,6 +4,7 @@ use crate::core::settings::Settings;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconEvent;
 use tauri::{App, LogicalSize, Manager};
+use tauri_plugin_autostart::ManagerExt;
 
 /// Window ID
 const WINDOW_ID: &str = "main";
@@ -39,7 +40,6 @@ pub fn run() -> KasuriResult<()> {
     let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .plugin(get_plugin_log(&settings).build())
         .invoke_handler(tauri::generate_handler![
             search_application,
@@ -50,6 +50,16 @@ pub fn run() -> KasuriResult<()> {
         .setup(|app| {
             log::debug!("Setup started");
             log::debug!("Settings: {:#?}", settings);
+            let _ = app.handle().plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                Some(vec![]),
+            ));
+            if settings.get_auto_startup() {
+                app.autolaunch().enable()?;
+            } else if app.autolaunch().is_enabled().unwrap_or(false) {
+                app.autolaunch().disable()?;
+            }
+
             let mut kasuri = Kasuri::with_settings(settings)?;
             kasuri.init(app.app_handle())?;
             create_system_tray_menu(app)?;
@@ -57,6 +67,7 @@ pub fn run() -> KasuriResult<()> {
                 .expect("Failed to get main window")
                 .set_size(LogicalSize::new(*(&kasuri.settings.get_width()), 100))?;
             app.manage(kasuri);
+
             Ok(())
         })
         .run(tauri::generate_context!())

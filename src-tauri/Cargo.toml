@@ -18,7 +18,6 @@ tauri = { version = "2", features = [
     "config-toml",
     "unstable",
 ] }
-tauri-plugin-opener = "2"
 dirs = "6.0.0"
 fuzzy-matcher = "0.3.7"
 sqlite = "0.37.0"
@@ -33,3 +32,6 @@ tauri-plugin-log = "2"
 log = "0.4"
 md-5 = "0.10.6"
 open = "5.3.2"
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2.3.0"
