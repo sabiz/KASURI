@@ -21,6 +21,7 @@ pub struct Settings {
     log_level: String,
     width: u32,
     auto_startup: bool,
+    shortcut_key: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -30,6 +31,7 @@ struct PartialSettings {
     log_level: Option<String>,
     width: Option<u32>,
     auto_startup: Option<bool>,
+    shortcut_key: Option<String>,
 }
 
 impl Settings {
@@ -71,6 +73,11 @@ impl Settings {
         self.auto_startup
     }
 
+    /// Returns the shortcut key
+    pub fn get_shortcut_key(&self) -> String {
+        self.shortcut_key.clone()
+    }
+
     /// Check if the settings file exists
     fn is_existing_settings_file() -> bool {
         std::path::Path::new(SETTINGS_FILE_NAME).exists()
@@ -110,6 +117,9 @@ impl Settings {
             auto_startup: partial_settings
                 .auto_startup
                 .unwrap_or_else(|| default_settings.auto_startup),
+            shortcut_key: partial_settings
+                .shortcut_key
+                .unwrap_or_else(|| default_settings.shortcut_key),
         };
 
         Ok(settings)

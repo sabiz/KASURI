@@ -1,10 +1,14 @@
 use crate::core::kasuri::Kasuri;
 use crate::core::kasuri::KasuriResult;
 use crate::core::settings::Settings;
+use global_hotkey::GlobalHotKeyEvent;
+use global_hotkey::HotKeyState;
+use tauri::AppHandle;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconEvent;
 use tauri::{App, LogicalSize, Manager};
 use tauri_plugin_autostart::ManagerExt;
+use tauri_plugin_global_shortcut::Shortcut;
 
 /// Window ID
 const WINDOW_ID: &str = "main";
@@ -50,6 +54,12 @@ pub fn run() -> KasuriResult<()> {
         .setup(|app| {
             log::debug!("Setup started");
             log::debug!("Settings: {:#?}", settings);
+            let _ = app.handle().plugin(
+                tauri_plugin_global_shortcut::Builder::new()
+                    .with_shortcut(settings.get_shortcut_key().as_str())?
+                    .with_handler(on_global_shortcut)
+                    .build(),
+            );
             let _ = app.handle().plugin(tauri_plugin_autostart::init(
                 tauri_plugin_autostart::MacosLauncher::LaunchAgent,
                 Some(vec![]),
@@ -160,6 +170,26 @@ fn launch_application(
 ) {
     log::debug!("launch application: {}", app_id);
     let _ = app_state.inner().handle_launch_application(&app_id);
+}
+
+fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyEvent) -> () {
+    log::debug!(
+        "Global shortcut triggered, key: {} state: {:?}",
+        shortcut,
+        event.state()
+    );
+    if event.state() != HotKeyState::Released {
+        return;
+    }
+    let window = app
+        .get_window(WINDOW_ID)
+        .expect("Failed to get main window");
+    if !window.is_visible().unwrap_or(true) {
+        let _ = window.show();
+        window.set_focus().unwrap();
+    } else {
+        let _ = window.hide();
+    }
 }
 
 /// Configures and returns a Tauri log plugin builder based on application settings.
