@@ -48,7 +48,7 @@ impl Application {
                     return None;
                 }
 
-                let name = path.file_name()?.to_string_lossy().to_string();
+                let name = path.file_stem()?.to_string_lossy().to_string();
                 let path_str = path.to_string_lossy().to_string();
 
                 Some(Self::new(name, path_str.clone(), path_str))
