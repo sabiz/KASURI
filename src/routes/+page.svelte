@@ -1,17 +1,26 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { Application } from "../core/backend";
   import { Backend } from "../core/backend";
   import { convertFileSrc } from "@tauri-apps/api/core";
+  import { listen } from "@tauri-apps/api/event";
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
+
+  const EVENT_WINDOW_SHOW = "window-show";
 
   let mainElement: HTMLElement | null = null;
   let searchQuery = $state("");
   let suggestions = $state<Application[]>([]);
   let selectedSuggestionIndex = $state(-1);
   let suggestionListElement = $state<HTMLElement | null>(null);
-  let searchFormElement: HTMLFormElement | null = null;
+  let queryInputElement: HTMLInputElement | null = null;
   let queryInputClass = $state("");
 
   let backend = new Backend();
+
+  onMount(() => {
+    queryInputElement?.focus();
+  });
 
   /**
    * Generates a consistent color based on the application name.
@@ -113,6 +122,7 @@
     backend.close();
     searchQuery = "";
     handleQueryInput();
+    queryInputElement?.focus();
   }
 
   /*
@@ -159,6 +169,13 @@
     backend.launch(selectedSuggestion);
     closeMe();
   }
+
+  listen(EVENT_WINDOW_SHOW, () => {
+    console.log("Window show event received");
+    getCurrentWebview().setFocus();
+    queryInputElement?.focus();
+    queryInputElement?.select();
+  });
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -168,11 +185,7 @@
   bind:this={mainElement}
 >
   <div class={["w-full"]}>
-    <form
-      class={["w-full", "relative"]}
-      onsubmit={handleSubmit}
-      bind:this={searchFormElement}
-    >
+    <form class={["w-full", "relative"]} onsubmit={handleSubmit}>
       <div
         data-tauri-drag-region
         class={[
@@ -186,6 +199,7 @@
           queryInputClass,
         ]}
       >
+        <!-- svelte-ignore a11y_autofocus -->
         <input
           type="text"
           class={[
@@ -204,6 +218,8 @@
           placeholder="Application name..."
           bind:value={searchQuery}
           oninput={handleQueryInput}
+          bind:this={queryInputElement}
+          autofocus
         />
         <button
           type="submit"

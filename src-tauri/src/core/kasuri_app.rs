@@ -4,6 +4,7 @@ use crate::core::settings::Settings;
 use global_hotkey::GlobalHotKeyEvent;
 use global_hotkey::HotKeyState;
 use tauri::AppHandle;
+use tauri::Emitter;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconEvent;
 use tauri::{App, LogicalSize, Manager};
@@ -15,6 +16,8 @@ const WINDOW_ID: &str = "main";
 
 /// Tray icon ID
 const TRAY_ICON_ID: &str = "main";
+
+const EVENT_WINDOW_SHOW: &str = "window-show";
 
 /// Simplified application data structure used for passing to the UI layer.
 ///
@@ -99,11 +102,7 @@ pub fn run() -> KasuriResult<()> {
 ///
 /// A vector of simplified application objects for display in the UI
 #[tauri::command]
-fn search_application(
-    query: &str,
-    app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
-) -> Vec<AppForView> {
+fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<AppForView> {
     log::debug!("Searching for application: {}", query);
     let kasuri = app_state.inner();
     kasuri.handle_search_application(query)
@@ -163,11 +162,7 @@ fn close_window(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn launch_application(
-    app_id: String,
-    app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
-) {
+fn launch_application(app_id: String, app_state: tauri::State<'_, Kasuri>) {
     log::debug!("launch application: {}", app_id);
     let _ = app_state.inner().handle_launch_application(&app_id);
 }
@@ -186,7 +181,9 @@ fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyE
         .expect("Failed to get main window");
     if !window.is_visible().unwrap_or(true) {
         let _ = window.show();
+        window.set_enabled(true).unwrap();
         window.set_focus().unwrap();
+        app.emit(EVENT_WINDOW_SHOW, ()).unwrap();
     } else {
         let _ = window.hide();
     }
@@ -267,6 +264,8 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
             if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID) {
                 if !window.is_visible().unwrap_or(true) {
                     let _ = window.show();
+                    window.set_focus().unwrap();
+                    tray_icon.app_handle().emit(EVENT_WINDOW_SHOW, ()).unwrap();
                 }
             }
         }

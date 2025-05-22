@@ -44,7 +44,7 @@ dragDropEnabled = false
 focus = true
 resizable = false
 skipTaskbar = false              # true
-visible = true                   # false
+visible = false
 transparent = true
 url = "index.html"
 
