@@ -61,7 +61,6 @@
     const index = Math.abs(hash) % colors.length;
     return colors[index];
   }
-
   $effect.pre(() => {
     // Set the initial state of the search query
     updateSelectedSuggestionIndex(true);
@@ -72,8 +71,8 @@
     backend.sendContentSize(mainElement?.clientHeight || 0);
   });
 
-  /*
-   * updates the class of the search input field based on the
+  /**
+   * Updates the class of the search input field based on the
    * state of the suggestions.
    */
   function updateQueryInputClass() {
@@ -83,10 +82,11 @@
       queryInputClass = "border-1 rounded-lg";
     }
   }
-
-  /*
-   * updates the selected suggestion index based on the
+  /**
+   * Updates the selected suggestion index based on the
    * current state of the suggestions.
+   * @param byEffect - Whether the function is called by an effect
+   * @param moveDirection - The direction to move the selection (positive for down, negative for up)
    */
   function updateSelectedSuggestionIndex(
     byEffect: boolean = false,
@@ -114,9 +114,8 @@
       block: "nearest",
     });
   }
-
-  /*
-   * closes the search window.
+  /**
+   * Closes the search window and resets the search.
    */
   function closeMe() {
     backend.close();
@@ -125,8 +124,9 @@
     queryInputElement?.focus();
   }
 
-  /*
-   * handle the input event of the query input field.
+  /**
+   * Handles the input event of the query input field.
+   * Fetches application suggestions based on the search query.
    */
   async function handleQueryInput() {
     if (searchQuery.trim() === "") {
@@ -136,9 +136,9 @@
     let result = await backend.searchApplication(searchQuery);
     suggestions = result as Application[];
   }
-
-  /*
-   * handle the keydown event of the window.
+  /**
+   * Handles the keydown event of the window.
+   * @param event - The keyboard event
    */
   function handleKeyDown(event: KeyboardEvent) {
     // console.log("Key pressed:", event.key);
@@ -155,8 +155,10 @@
         break;
     }
   }
-
-  // Handle search form submit
+  /**
+   * Handles search form submission.
+   * Launches the selected application if available.
+   */
   function handleSubmit() {
     if (
       suggestions.length === 0 ||

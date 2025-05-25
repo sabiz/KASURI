@@ -5,14 +5,25 @@ const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
 const INVOKE_CLOSE_WINDOW = "close_window";
 const INVOKE_LAUNCH_APPLICATION = "launch_application";
 
+/**
+ * Represents an application that can be searched and launched.
+ */
 export interface Application {
+    /** The display name of the application */
     name: string;
+    /** The unique identifier for the application */
     app_id: string;
+    /** The path to the icon file for the application */
     icon_path: string;
 }
 
+/**
+ * Backend class for interacting with Tauri backend services.
+ * Provides methods for searching applications, managing window state,
+ * and launching applications.
+ */
 export class Backend {
-
+    /** Tracks the last sent content size to avoid unnecessary updates */
     lastContentSize: number = 0;
 
     /**
@@ -58,16 +69,16 @@ export class Backend {
      * Closes the window.
      * @returns A promise that resolves when the window is closed.
      */
-    public async close() {
+    public async close(): Promise<void> {
         await invoke(INVOKE_CLOSE_WINDOW);
     }
 
     /**
-     * Launches an application based on the provided app ID.
-     * @param appId The ID of the application to be launched.
+     * Launches an application based on the provided application object.
+     * @param application The application object to be launched.
      * @returns A promise that resolves when the application is launched.
      */
-    public async launch(application: Application) {
+    public async launch(application: Application): Promise<void> {
         await invoke(INVOKE_LAUNCH_APPLICATION, {
             appId: application.app_id,
         });
