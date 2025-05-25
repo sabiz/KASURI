@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use crate::core::kasuri::Kasuri;
 use crate::core::kasuri::KasuriResult;
 use crate::core::settings::Settings;
@@ -79,7 +81,7 @@ pub fn run() -> KasuriResult<()> {
             app.get_window(WINDOW_ID)
                 .expect("Failed to get main window")
                 .set_size(LogicalSize::new(*(&kasuri.settings.get_width()), 100))?;
-            app.manage(kasuri);
+            app.manage(Mutex::new(kasuri));
 
             Ok(())
         })
@@ -102,9 +104,9 @@ pub fn run() -> KasuriResult<()> {
 ///
 /// A vector of simplified application objects for display in the UI
 #[tauri::command]
-fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<AppForView> {
+fn search_application(query: &str, app_state: tauri::State<'_, Mutex<Kasuri>>) -> Vec<AppForView> {
     log::debug!("Searching for application: {}", query);
-    let kasuri = app_state.inner();
+    let kasuri = app_state.lock().unwrap();
     kasuri.handle_search_application(query)
 }
 
@@ -126,7 +128,7 @@ fn search_application(query: &str, app_state: tauri::State<'_, Kasuri>) -> Vec<A
 fn changed_content_size(
     content_height: u32,
     app_handle: tauri::AppHandle,
-    app_state: tauri::State<'_, Kasuri>,
+    app_state: tauri::State<'_, Mutex<Kasuri>>,
 ) {
     log::debug!("on_Content_size_changed: {}", content_height);
     let window = app_handle
@@ -134,7 +136,7 @@ fn changed_content_size(
         .expect("Failed to get main window");
     window
         .set_size(LogicalSize::new(
-            app_state.settings.get_width(),
+            app_state.lock().unwrap().settings.get_width(),
             content_height + 2,
         ))
         .unwrap();
@@ -162,9 +164,9 @@ fn close_window(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn launch_application(app_id: String, app_state: tauri::State<'_, Kasuri>) {
+fn launch_application(app_id: String, app_state: tauri::State<'_, Mutex<Kasuri>>) {
     log::debug!("launch application: {}", app_id);
-    let _ = app_state.inner().handle_launch_application(&app_id);
+    let _ = app_state.lock().unwrap().handle_launch_application(&app_id);
 }
 
 fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyEvent) -> () {
@@ -242,12 +244,21 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
     // See Tauri.toml for basic settings.
     let tray_icon_main = app.tray_by_id(TRAY_ICON_ID).unwrap();
     let item_exit = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&item_exit])?;
+    let item_reload = MenuItem::with_id(app, "reload", "Reload", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&item_reload, &item_exit])?;
     tray_icon_main.set_menu(Some(menu))?;
     tray_icon_main.on_menu_event(|app, event| match event.id.as_ref() {
         "exit" => {
             log::debug!("Exit menu item clicked");
             app.exit(0);
+        }
+        "reload" => {
+            log::debug!("Reload menu item clicked");
+            app.state::<Mutex<Kasuri>>()
+                .lock()
+                .unwrap()
+                .load_applications_to_cache(app)
+                .expect("Failed to reload applications");
         }
         _ => {
             log::warn!("Unknown menu item clicked: {}", event.id.0);
