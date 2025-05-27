@@ -20,6 +20,8 @@ impl PowerShell {
             Command::new("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe")
                 .arg("-ExecutionPolicy")
                 .arg("Bypass")
+                .arg("-WindowStyle")
+                .arg("Hidden")
                 .arg("-File")
                 .arg(&temp_file_path)
                 .output()?; // Clean up the temporary file
