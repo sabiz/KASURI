@@ -19,6 +19,10 @@ const WINDOW_ID: &str = "main";
 /// Tray icon ID
 const TRAY_ICON_ID: &str = "main";
 
+/// Event name for window show action
+///
+/// This event is emitted when the main window is shown,
+/// allowing the frontend to respond appropriately.
 const EVENT_WINDOW_SHOW: &str = "window-show";
 
 /// Simplified application data structure used for passing to the UI layer.
@@ -46,6 +50,7 @@ pub struct AppForView {
 /// Returns a `KasuriResult<()>` which is `Ok(())` if the application runs and exits normally,
 /// or an error if initialization fails.
 pub fn run() -> KasuriResult<()> {
+    log::info!("Starting Kasuri application");
     let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
 
     tauri::Builder::default()
@@ -130,7 +135,7 @@ fn changed_content_size(
     app_handle: tauri::AppHandle,
     app_state: tauri::State<'_, Mutex<Kasuri>>,
 ) {
-    log::debug!("on_Content_size_changed: {}", content_height);
+    log::debug!("Content size changed: height={}", content_height);
     let window = app_handle
         .get_window(WINDOW_ID)
         .expect("Failed to get main window");
@@ -156,19 +161,46 @@ fn changed_content_size(
 /// None
 #[tauri::command]
 fn close_window(app_handle: tauri::AppHandle) {
-    log::debug!("close window");
+    log::debug!("Closing window");
     let window = app_handle
         .get_window(WINDOW_ID)
         .expect("Failed to get main window");
     window.hide().unwrap();
 }
 
+/// Tauri command for launching an application.
+///
+/// This function is called when the user selects an application to launch.
+/// It delegates to the Kasuri instance to handle the actual launching process.
+///
+/// # Arguments
+///
+/// * `app_id` - The unique identifier of the application to launch
+/// * `app_state` - Tauri state containing the Kasuri instance
+///
+/// # Returns
+///
+/// None
 #[tauri::command]
 fn launch_application(app_id: String, app_state: tauri::State<'_, Mutex<Kasuri>>) {
-    log::debug!("launch application: {}", app_id);
+    log::debug!("Launching application with ID: {}", app_id);
     let _ = app_state.lock().unwrap().handle_launch_application(&app_id);
 }
 
+/// Handles global shortcut key events.
+///
+/// This function is called when a registered global shortcut is activated.
+/// It toggles the visibility of the main application window based on the shortcut activation.
+///
+/// # Arguments
+///
+/// * `app` - The Tauri application handle
+/// * `shortcut` - The shortcut that was activated
+/// * `event` - The global hotkey event containing the state information
+///
+/// # Returns
+///
+/// None
 fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyEvent) -> () {
     log::debug!(
         "Global shortcut triggered, key: {} state: {:?}",
@@ -182,11 +214,13 @@ fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyE
         .get_window(WINDOW_ID)
         .expect("Failed to get main window");
     if !window.is_visible().unwrap_or(true) {
+        log::debug!("Window not visible, showing window");
         let _ = window.show();
         window.set_enabled(true).unwrap();
         window.set_focus().unwrap();
         app.emit(EVENT_WINDOW_SHOW, ()).unwrap();
     } else {
+        log::debug!("Window visible, hiding window");
         let _ = window.hide();
     }
 }
@@ -274,6 +308,7 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
             log::debug!("Tray icon double-clicked");
             if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID) {
                 if !window.is_visible().unwrap_or(true) {
+                    log::debug!("Showing window on tray icon double-click");
                     let _ = window.show();
                     window.set_focus().unwrap();
                     tray_icon.app_handle().emit(EVENT_WINDOW_SHOW, ()).unwrap();

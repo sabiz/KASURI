@@ -137,34 +137,74 @@ impl Kasuri {
         Ok(())
     }
 
+    /// Forces a reload of applications into the cache from search paths.
+    ///
+    /// This method is typically used when the user explicitly requests a refresh
+    /// of application data, or when application data may have changed externally.
+    ///
+    /// # Arguments
+    ///
+    /// * `app_handle` - The Tauri application handle, used to access app resources
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<()>` indicating success or failure of the cache reload operation
     pub fn load_applications_to_cache(
         &mut self,
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<()> {
+        log::debug!("Forcing reload of applications into cache");
         self.app_cache = Some(self.load_applications_from_search_path(app_handle)?);
         Ok(())
     }
 
+    /// Loads applications from search paths only if needed based on time interval.
+    ///
+    /// This method checks if a new application search is needed based on the time
+    /// since the last search. If not needed, it loads applications from the repository.
+    /// If needed, it performs a full search of the file system for applications.
+    ///
+    /// # Arguments
+    ///
+    /// * `app_handle` - The Tauri application handle, used to access app resources
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<Vec<Application>>` containing the loaded applications or an error
     fn load_applications_from_search_path_if_needed(
         &self,
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<Vec<Application>> {
         let mut applications: Vec<Application>;
         if !self.is_search_application_needed() {
-            log::debug!("Application search is not needed.");
+            log::debug!("Application search not needed, loading from repository");
             applications = self.application_repository.get_applications()?;
             self.setup_applications_icon_path(&mut applications, app_handle)?;
         } else {
+            log::debug!("Application search needed, scanning search paths");
             applications = self.load_applications_from_search_path(app_handle)?;
         }
 
         Ok(applications)
     }
 
+    /// Loads applications from all configured search paths.
+    ///
+    /// This method scans all directories specified in the application settings,
+    /// collects application data, updates the repository, and sets up icon paths.
+    ///
+    /// # Arguments
+    ///
+    /// * `app_handle` - The Tauri application handle, used to access app resources
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<Vec<Application>>` containing the loaded applications or an error
     fn load_applications_from_search_path(
         &self,
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<Vec<Application>> {
+        log::debug!("Beginning application scan from configured search paths");
         let cache_path = self.get_app_cache_path(app_handle)?;
         // Load applications from the specified paths
         let mut applications: Vec<Application> = self
@@ -172,41 +212,81 @@ impl Kasuri {
             .get_application_search_path_list()
             .iter()
             .flat_map(|path| {
-                log::debug!("Loading applications from: {}", path);
+                log::debug!("Loading applications from path: {}", path);
                 if path == SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP {
+                    log::debug!("Scanning Windows Store applications");
                     Application::from_app_store()
                 } else {
+                    log::debug!("Scanning filesystem path: {}", path);
                     Application::from_path(path)
                 }
             })
             .collect();
+        log::debug!("Updating last application search time");
         self.kasuri_repository.set_last_application_search_time()?;
+        
+        log::debug!("Found {} applications, updating repository", applications.len());
         let new_applications = self
             .application_repository
             .renew_applications(applications.clone())?;
+        
+        log::debug!("Creating application icons for {} new applications", new_applications.len());
         Application::create_app_icon(new_applications, &cache_path)?;
+        
+        log::debug!("Setting up icon paths for all applications");
         self.setup_applications_icon_path(&mut applications, app_handle)?;
+        
+        log::debug!("Application loading complete, returning {} applications", applications.len());
         Ok(applications)
     }
 
+    /// Sets up icon paths for applications based on the application cache directory.
+    ///
+    /// This method updates each application's icon_path field to point to the
+    /// correct location in the application cache directory.
+    ///
+    /// # Arguments
+    ///
+    /// * `applications` - A mutable reference to the vector of applications to update
+    /// * `app_handle` - The Tauri application handle, used to access app resources
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<()>` indicating success or failure of the operation
     fn setup_applications_icon_path(
         &self,
         applications: &mut Vec<Application>,
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<()> {
         let cache_path = PathBuf::from_str(self.get_app_cache_path(app_handle)?.as_str())?;
+        log::debug!("Setting up icon paths using cache directory: {}", cache_path.display());
+        
         applications.iter_mut().for_each(|app| {
-            app.icon_path = Some(
-                cache_path
-                    .clone()
-                    .join(app.get_icon_name())
-                    .to_string_lossy()
-                    .to_string(),
-            );
+            let icon_name = app.get_icon_name();
+            let icon_path = cache_path
+                .clone()
+                .join(&icon_name)
+                .to_string_lossy()
+                .to_string();
+            
+            log::debug!("Setting icon path for '{}': {}", app.name, icon_path);
+            app.icon_path = Some(icon_path);
         });
         Ok(())
     }
 
+    /// Retrieves the application cache directory path as a string.
+    ///
+    /// This method gets the platform-specific application cache directory
+    /// where Kasuri stores cached data like application icons.
+    ///
+    /// # Arguments
+    ///
+    /// * `app_handle` - The Tauri application handle, used to access app resources
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<String>` containing the cache directory path or an error
     fn get_app_cache_path(&self, app_handle: &tauri::AppHandle) -> KasuriResult<String> {
         let cache_path = app_handle
             .path()
@@ -214,6 +294,8 @@ impl Kasuri {
             .into_os_string()
             .into_string()
             .unwrap();
+        
+        log::debug!("Application cache path: {}", cache_path);
         Ok(cache_path)
     }
 
@@ -231,15 +313,23 @@ impl Kasuri {
             .kasuri_repository
             .get_last_application_search_time()
             .unwrap_or(0);
+        
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Failed to get current time")
             .as_secs();
+        
         let elapsed_time = now - last_application_search_time;
-        elapsed_time
-            > self
-                .settings
-                .get_application_search_interval_on_startup_minute()
-                * 60
+        let interval_seconds = self
+            .settings
+            .get_application_search_interval_on_startup_minute() * 60;
+        
+        log::debug!(
+            "Time since last application search: {}s (interval: {}s)",
+            elapsed_time,
+            interval_seconds
+        );
+        
+        elapsed_time > interval_seconds
     }
 }
