@@ -92,6 +92,10 @@ Set `auto_startup = true` in your `settings.toml` file.
 
 Settings are stored in `%APPDATA%\Local\KASURI\settings.toml`.
 
+### Where are log files stored?
+
+Log files are stored in the `logs` directory within the application installation folder. The application automatically creates this directory if it doesn't exist.
+
 ## License
 
 [MIT License](LICENSE) :copyright: [sAbIz](https://github.com/sabiz):jp:

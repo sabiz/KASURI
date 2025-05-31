@@ -238,11 +238,22 @@ fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyE
 ///
 /// A configured Tauri log plugin builder
 fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
+    let log_dir = std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("logs");
+    log::debug!("Log directory: {:?}", log_dir);
+    if !log_dir.exists() {
+        std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
+    }
+
     tauri_plugin_log::Builder::new()
         .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
         .target(tauri_plugin_log::Target::new(
-            tauri_plugin_log::TargetKind::LogDir {
-                file_name: Some("logs".to_string()), // log to %APPDATA%\Local\jp.sabiz.kasuri\logs
+            tauri_plugin_log::TargetKind::Folder {
+                path: log_dir,
+                file_name: None,
             },
         ))
         .level(match settings.get_log_level().as_str() {
