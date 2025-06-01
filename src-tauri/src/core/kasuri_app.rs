@@ -54,7 +54,7 @@ pub fn run() -> KasuriResult<()> {
     let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
 
     tauri::Builder::default()
-        .plugin(get_plugin_log(&settings).build())
+        // .plugin(get_plugin_log(&settings).build())
         .invoke_handler(tauri::generate_handler![
             search_application,
             changed_content_size,
