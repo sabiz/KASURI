@@ -2,6 +2,8 @@ use std::sync::Mutex;
 
 use crate::core::kasuri::Kasuri;
 use crate::core::kasuri::KasuriResult;
+
+use crate::core::log::set_log_level_str;
 use crate::core::settings::Settings;
 use global_hotkey::GlobalHotKeyEvent;
 use global_hotkey::HotKeyState;
@@ -52,9 +54,9 @@ pub struct AppForView {
 pub fn run() -> KasuriResult<()> {
     log::info!("Starting Kasuri application");
     let settings = Settings::load().map_err(|e| format!("Failed to load settings: {}", e))?;
+    set_log_level_str(settings.get_log_level().as_str());
 
     tauri::Builder::default()
-        // .plugin(get_plugin_log(&settings).build())
         .invoke_handler(tauri::generate_handler![
             search_application,
             changed_content_size,
@@ -223,54 +225,6 @@ fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHotKeyE
         log::debug!("Window visible, hiding window");
         let _ = window.hide();
     }
-}
-
-/// Configures and returns a Tauri log plugin builder based on application settings.
-///
-/// This function sets up logging for the application with appropriate levels, formatting,
-/// and output targets based on the provided settings.
-///
-/// # Arguments
-///
-/// * `settings` - The application settings containing log configuration
-///
-/// # Returns
-///
-/// A configured Tauri log plugin builder
-fn get_plugin_log(settings: &Settings) -> tauri_plugin_log::Builder {
-    let log_dir = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("logs");
-    log::debug!("Log directory: {:?}", log_dir);
-    if !log_dir.exists() {
-        std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
-    }
-
-    tauri_plugin_log::Builder::new()
-        .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
-        .target(tauri_plugin_log::Target::new(
-            tauri_plugin_log::TargetKind::Folder {
-                path: log_dir,
-                file_name: None,
-            },
-        ))
-        .level(match settings.get_log_level().as_str() {
-            "error" => log::LevelFilter::Error,
-            "warn" => log::LevelFilter::Warn,
-            "info" => log::LevelFilter::Info,
-            "debug" => log::LevelFilter::Debug,
-            _ => log::LevelFilter::Info,
-        })
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{} {} {}",
-                tauri_plugin_log::TimezoneStrategy::UseLocal.get_now(),
-                record.level(),
-                message
-            ))
-        })
 }
 
 /// Creates and configures the system tray menu for the application.

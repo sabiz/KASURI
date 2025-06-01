@@ -7,8 +7,16 @@ static INSTANCE: LazyLock<Mutex<Logger>> = LazyLock::new(|| {
     })
 });
 
+/// Initializes the logger for the KASURI application.
+/// This function sets up a global logger that writes logs to both the console and a rolling file.
+/// The log files are stored in a `logs` directory next to the executable.
+/// The logger supports log rotation, keeping up to 5 old log files, each with a maximum size of 10 MB.
+/// The log messages are formatted with a timestamp, log level, and message content.
+/// The log level can be dynamically changed at runtime.
+/// # Panics
+/// Panics if the log directory cannot be created or the rolling file appender cannot be initialized.
+/// Panics if logger initialization fails.
 pub fn init_logger() -> () {
-    let logger = INSTANCE.lock().unwrap();
     let top_dispatch = fern::Dispatch::new();
     let console_dispatch = fern::Dispatch::new().chain(std::io::stdout());
 
@@ -33,7 +41,7 @@ pub fn init_logger() -> () {
         fern::Dispatch::new().chain(Box::new(log_file) as Box<dyn std::io::Write + Send>);
 
     top_dispatch
-        .level(logger.level)
+        .filter(|metadata| metadata.level() <= INSTANCE.lock().unwrap().level)
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{} {} {}",
@@ -48,6 +56,31 @@ pub fn init_logger() -> () {
         .expect("Failed to initialize logger");
 }
 
-pub struct Logger {
-    pub level: log::LevelFilter,
+struct Logger {
+    level: log::LevelFilter,
+}
+
+/// Sets the log level from a string representation.
+/// This function allows you to change the log level dynamically at runtime.
+/// # Arguments
+/// * `level`: A string representing the log level. Valid values are "error", "warn", "info", "debug".
+/// # If an invalid value is provided, it defaults to "info".
+pub fn set_log_level_str(level: &str) {
+    let level = match level.to_lowercase().as_str() {
+        "error" => log::LevelFilter::Error,
+        "warn" => log::LevelFilter::Warn,
+        "info" => log::LevelFilter::Info,
+        "debug" => log::LevelFilter::Debug,
+        _ => log::LevelFilter::Info, // Default to Info if invalid
+    };
+    set_log_level(level);
+}
+
+/// Sets the log level from a `log::LevelFilter`.
+/// This function allows you to change the log level dynamically at runtime.
+/// # Arguments
+/// * `level`: The desired log level as a `log::LevelFilter`.
+pub fn set_log_level(level: log::LevelFilter) {
+    let mut logger = INSTANCE.lock().unwrap();
+    logger.level = level;
 }
