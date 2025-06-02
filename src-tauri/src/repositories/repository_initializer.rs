@@ -51,14 +51,19 @@ impl RepositoryInitializer {
     ///
     /// * `KasuriResult<Repositories>` - A Result containing the initialized repositories or an error
     pub fn get_repositories(&self) -> KasuriResult<Repositories> {
+        let path = std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(DB_NAME);
         log::info!(
-            "Initializing application repositories with database: {}",
-            DB_NAME
+            "Initializing application repositories with database: {:?}",
+            path
         );
 
         // Open connection for version check
         log::debug!("Opening database connection for version check");
-        let connection = sqlite::Connection::open_thread_safe(DB_NAME)?;
+        let connection = sqlite::Connection::open_thread_safe(&path)?;
 
         // Get current database version
         let db_version = self.get_db_version(&connection)?;
@@ -74,14 +79,14 @@ impl RepositoryInitializer {
 
         // Initialize ApplicationRepository with a new connection
         log::debug!("Opening database connection for ApplicationRepository");
-        let connection = sqlite::Connection::open_thread_safe(DB_NAME)?;
+        let connection = sqlite::Connection::open_thread_safe(&path)?;
         log::debug!("Initializing ApplicationRepository");
         let application_repository =
             ApplicationRepository::with_connection(connection, db_version)?;
 
         // Update database version if needed
         log::debug!("Opening database connection for version update check");
-        let connection = sqlite::Connection::open_thread_safe(DB_NAME)?;
+        let connection = sqlite::Connection::open_thread_safe(&path)?;
         if db_version < DB_VERSION {
             self.update_db_version(&connection)?;
         }

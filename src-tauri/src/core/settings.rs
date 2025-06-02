@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
     io::{Read, Write},
+    path::PathBuf,
 };
 
 /// Placeholder for data directory
@@ -179,7 +180,7 @@ impl Settings {
     ///
     /// `true` if the settings file exists, `false` otherwise.
     fn is_existing_settings_file() -> bool {
-        let path = std::path::Path::new(SETTINGS_FILE_NAME);
+        let path = Self::get_settings_file_path();
         let exists = path.exists();
         log::debug!(
             "Checking if settings file exists at {}: {}",
@@ -207,8 +208,9 @@ impl Settings {
     /// - The file is empty
     /// - The TOML parsing fails
     fn load_from_file() -> KasuriResult<Self> {
-        log::debug!("Opening settings file: {}", SETTINGS_FILE_NAME);
-        let mut file = File::open(SETTINGS_FILE_NAME)?;
+        let path = Self::get_settings_file_path();
+        log::debug!("Opening settings file: {:?}", path);
+        let mut file = File::open(path)?;
 
         let mut buf = String::new();
         let size = file.read_to_string(&mut buf)?;
@@ -268,8 +270,9 @@ impl Settings {
     /// - The settings cannot be serialized to TOML
     /// - The data cannot be written to the file
     fn save(self) -> KasuriResult<()> {
-        log::debug!("Creating settings file: {}", SETTINGS_FILE_NAME);
-        let mut file = File::create(SETTINGS_FILE_NAME)?;
+        let path = Self::get_settings_file_path();
+        log::debug!("Creating settings file: {:?}", path);
+        let mut file = File::create(path)?;
 
         log::debug!("Serializing settings to TOML");
         let settings_str = toml::to_string_pretty(&self)?;
@@ -279,6 +282,14 @@ impl Settings {
 
         log::info!("Settings saved successfully");
         Ok(())
+    }
+
+    fn get_settings_file_path() -> PathBuf {
+        std::env::current_exe()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(SETTINGS_FILE_NAME)
     }
 }
 
