@@ -168,8 +168,8 @@
     const selectedSuggestion = suggestions[selectedSuggestionIndex];
     if (!selectedSuggestion) return;
     console.log("Selected suggestion:", selectedSuggestion);
-    backend.launch(selectedSuggestion);
     closeMe();
+    backend.launch(selectedSuggestion);
   }
 
   listen(EVENT_WINDOW_SHOW, () => {
