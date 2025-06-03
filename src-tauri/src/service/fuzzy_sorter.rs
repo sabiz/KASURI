@@ -2,14 +2,29 @@ use crate::model::application::Application;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
+/// Minimum score required for a fuzzy match to be considered relevant.
+/// Applications with scores below this threshold will be filtered out.
 const MINIMUM_MATCH_SCORE: i64 = 19;
 
+/// Service for fuzzy searching and sorting applications based on name relevance.
+///
+/// This struct encapsulates the functionality needed to perform fuzzy matching
+/// on a collection of applications and sort them by relevance to a search query.
 pub struct FuzzySorter {
+    /// The fuzzy matcher implementation used for scoring matches
     matcher: SkimMatcherV2,
 }
 
 impl FuzzySorter {
+    /// Creates a new FuzzySorter instance with default configuration.
+    ///
+    /// Initializes a new FuzzySorter with the default SkimMatcherV2 matcher.
+    ///
+    /// # Returns
+    ///
+    /// A new FuzzySorter instance ready for use in application filtering and sorting.
     pub fn new() -> Self {
+        log::debug!("Initializing new FuzzySorter with default matcher");
         Self {
             matcher: SkimMatcherV2::default(),
         }
@@ -36,6 +51,14 @@ impl FuzzySorter {
         query: &str,
         applications: Vec<Application>,
     ) -> Vec<Application> {
+        log::debug!(
+            "Performing fuzzy search with query: '{}' on {} applications",
+            query,
+            applications.len()
+        );
+
+        // Calculate fuzzy match scores for each application
+        log::debug!("Calculating fuzzy match scores for all applications");
         let mut applications_with_scores: Vec<_> = applications
             .into_iter()
             .map(|app| {
@@ -44,17 +67,35 @@ impl FuzzySorter {
             })
             .collect();
 
+        // Sort applications by score in descending order
+        log::debug!("Sorting applications by fuzzy match score");
         applications_with_scores.sort_by(|a, b| b.1.cmp(&a.1));
 
-        applications_with_scores
+        // Filter and return applications above minimum score threshold
+        let initial_count = applications_with_scores.len();
+        let filtered_results = applications_with_scores
             .into_iter()
             .filter(|(_, score)| *score > MINIMUM_MATCH_SCORE)
             .map(|(app, score)| {
-                log::debug!("Fuzzy match score for {}: {}", app.name, score);
+                log::debug!(
+                    "Fuzzy match score for '{}': {} (above threshold {})",
+                    app.name,
+                    score,
+                    MINIMUM_MATCH_SCORE
+                );
                 app
             })
             // .map(|(app, _)| app)
-            .collect()
+            .collect::<Vec<Application>>();
+
+        let filtered_count = filtered_results.len();
+        log::debug!(
+            "Fuzzy search complete: {} of {} applications matched above threshold score",
+            filtered_count,
+            initial_count
+        );
+
+        filtered_results
     }
 }
 
