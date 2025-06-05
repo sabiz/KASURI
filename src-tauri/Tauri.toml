@@ -50,7 +50,7 @@ url = "index.html"
 
 [bundle]
 active = true
-targets = "all"
+targets = "nsis"
 icon = ["icons/kasuri.ico"]
 category = "Utility"
 copyright = "© 2025 sabiz"
