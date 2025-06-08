@@ -4,6 +4,20 @@ use sqlite::ConnectionThreadSafe;
 use sqlite::State::Row;
 use std::collections::HashMap;
 
+#[derive(Debug, Clone)]
+pub struct ApplicationRepositoryRecord {
+    /// Unique identifier for the application
+    pub app_id: String,
+    /// Name of the application
+    pub name: String,
+    /// Path to the application executable
+    pub path: String,
+    /// Number of times the application has been used
+    pub usage_count: i64,
+    /// Timestamp of the last time the application was used
+    pub last_used: i64,
+}
+
 /// Repository for Application data and statistics
 ///
 /// This repository manages the storage and retrieval of application data in the SQLite database.
@@ -149,24 +163,60 @@ impl ApplicationRepository {
         log::debug!("Retrieving all applications from database");
         let mut statement = self
             .connection
-            .prepare("SELECT app_id, name, path FROM applications")?;
+            .prepare("SELECT app_id, name, path, usage_count, last_used FROM applications")?;
         while let Ok(Row) = statement.next() {
             let app_id = statement.read::<String, _>(0)?;
             let name = statement.read::<String, _>(1)?;
             let path = statement.read::<String, _>(2)?;
-
-            applications.push(Application {
+            let usage_count = statement.read::<i64, _>(3)?;
+            let last_used = statement.read::<i64, _>(4)?;
+            log::debug!(
+                "Retrieved application: app_id={}, name={}, path={}, usage_count={}, last_used={}",
                 app_id,
                 name,
                 path,
-                icon_path: None,
-            });
+                usage_count,
+                last_used
+            );
+
+            applications.push(
+                (ApplicationRepositoryRecord {
+                    app_id,
+                    name,
+                    path,
+                    usage_count,
+                    last_used,
+                })
+                .into(),
+            );
         }
         log::debug!(
             "Retrieved {} applications from database",
             applications.len()
         );
         Ok(applications)
+    }
+
+    pub fn update_usage(&self, application: &Application) -> KasuriResult<()> {
+        log::debug!(
+            "Updating usage for application: app_id={},",
+            application.app_id
+        );
+        if application.app_id.is_empty() {
+            log::warn!("Cannot update usage for application with empty app_id");
+            return Ok(());
+        }
+        let mut statement = self.connection.prepare(
+            "UPDATE applications SET usage_count = usage_count + 1, last_used = (unixepoch()) WHERE app_id = ?",
+        )?;
+        statement.bind((1, application.app_id.as_str()))?;
+        while let Ok(Row) = statement.next() {
+            log::debug!(
+                "Updated successfully usage for application: app_id={}",
+                application.app_id
+            );
+        }
+        Ok(())
     }
 
     /// Performs database migrations to ensure the schema is up to date

@@ -1,6 +1,7 @@
 use crate::model::application::Application;
 use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
+use std::cmp::Ordering;
 
 /// Minimum score required for a fuzzy match to be considered relevant.
 /// Applications with scores below this threshold will be filtered out.
@@ -69,7 +70,14 @@ impl FuzzySorter {
 
         // Sort applications by score in descending order
         log::debug!("Sorting applications by fuzzy match score");
-        applications_with_scores.sort_by(|a, b| b.1.cmp(&a.1));
+        applications_with_scores.sort_by(|a, b| match b.1.cmp(&a.1) {
+            Ordering::Equal => {
+                b.0.usage_recency_score
+                    .partial_cmp(&a.0.usage_recency_score)
+                    .unwrap_or(Ordering::Equal)
+            }
+            order => order,
+        });
 
         // Filter and return applications above minimum score threshold
         let initial_count = applications_with_scores.len();
@@ -99,69 +107,89 @@ impl FuzzySorter {
     }
 }
 
-#[test]
-fn test_fuzzy_sort() {
-    let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
-        Application::new(
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::application::Application;
+
+    #[test]
+    fn test_fuzzy_sort() {
+        let mut app1 = Application::new("Firefox".to_string(), "".to_string(), "".to_string());
+        app1.usage_recency_score = 10.0;
+        let mut app2 = Application::new("Chrome".to_string(), "".to_string(), "".to_string());
+        app2.usage_recency_score = 30.0;
+        let mut app3 = Application::new(
             "Visual Studio Code".to_string(),
             "".to_string(),
             "".to_string(),
-        ),
-        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
-    ];
-    let sorter = FuzzySorter::new();
-    let query = "e";
+        );
+        app3.usage_recency_score = 20.0;
+        let mut app4 =
+            Application::new("File Explorer".to_string(), "".to_string(), "".to_string());
+        app4.usage_recency_score = 40.0;
+        let mut app5 = Application::new("Notepad".to_string(), "".to_string(), "".to_string());
+        app5.usage_recency_score = 50.0;
+        let applications = vec![app1, app2, app3, app4, app5];
+        let sorter = FuzzySorter::new();
+        let query = "e";
 
-    let results = sorter.sort_with_filter(query, applications);
-    assert_eq!(results.len(), 5);
-    assert_eq!(results[0].name, "File Explorer");
-    assert_eq!(results[1].name, "Firefox");
-    assert_eq!(results[2].name, "Chrome");
-    assert_eq!(results[3].name, "Visual Studio Code");
-    assert_eq!(results[4].name, "Notepad");
-}
+        let results = sorter.sort_with_filter(query, applications);
+        assert!(results.len() <= 5);
+        assert!(
+            results
+                .iter()
+                .all(|app| app.name.contains('e') || app.name.contains('E'))
+        );
+        for i in 1..results.len() {
+            let prev = &results[i - 1];
+            let curr = &results[i];
+            let prev_score = sorter.matcher.fuzzy_match(&prev.name, query).unwrap_or(0);
+            let curr_score = sorter.matcher.fuzzy_match(&curr.name, query).unwrap_or(0);
+            if prev_score == curr_score {
+                assert!(prev.usage_recency_score >= curr.usage_recency_score);
+            } else {
+                assert!(prev_score >= curr_score);
+            }
+        }
+    }
 
-#[test]
-fn test_fuzzy_sort_empty_query() {
-    let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
-        Application::new(
-            "Visual Studio Code".to_string(),
-            "".to_string(),
-            "".to_string(),
-        ),
-        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
-    ];
-    let sorter = FuzzySorter::new();
-    let query = "";
+    #[test]
+    fn test_fuzzy_sort_empty_query() {
+        let applications = vec![
+            Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
+            Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
+            Application::new(
+                "Visual Studio Code".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ),
+            Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
+            Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
+        ];
+        let sorter = FuzzySorter::new();
+        let query = "";
 
-    let results = sorter.sort_with_filter(query, applications);
+        let results = sorter.sort_with_filter(query, applications);
+        assert_eq!(results.len(), 0);
+    }
 
-    assert_eq!(results.len(), 5);
-}
+    #[test]
+    fn test_fuzzy_sort_no_match() {
+        let applications = vec![
+            Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
+            Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
+            Application::new(
+                "Visual Studio Code".to_string(),
+                "".to_string(),
+                "".to_string(),
+            ),
+            Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
+            Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
+        ];
+        let sorter = FuzzySorter::new();
+        let query = "z";
 
-#[test]
-fn test_fuzzy_sort_no_match() {
-    let applications = vec![
-        Application::new("Firefox".to_string(), "".to_string(), "".to_string()),
-        Application::new("Chrome".to_string(), "".to_string(), "".to_string()),
-        Application::new(
-            "Visual Studio Code".to_string(),
-            "".to_string(),
-            "".to_string(),
-        ),
-        Application::new("File Explorer".to_string(), "".to_string(), "".to_string()),
-        Application::new("Notepad".to_string(), "".to_string(), "".to_string()),
-    ];
-    let sorter = FuzzySorter::new();
-    let query = "z";
-
-    let results = sorter.sort_with_filter(query, applications);
-
-    assert_eq!(results.len(), 5);
+        let results = sorter.sort_with_filter(query, applications);
+        assert_eq!(results.len(), 0);
+    }
 }

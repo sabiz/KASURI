@@ -131,6 +131,9 @@ impl Kasuri {
         if let Some(app) = app {
             log::debug!("Launching application: {}", app.name);
             app.launch()?;
+            let _ = self.application_repository.update_usage(&app).map_err(|e| {
+                log::error!("Failed to update application usage: {}", e);
+            });
         } else {
             log::error!("Application with ID {} not found in cache", app_id);
         }
@@ -154,7 +157,10 @@ impl Kasuri {
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<()> {
         log::debug!("Forcing reload of applications into cache");
-        self.app_cache = Some(self.load_applications_from_search_path(app_handle)?);
+        self.load_applications_from_search_path(app_handle)?;
+        let mut applications = self.load_application_from_repository()?;
+        self.setup_applications_icon_path(&mut applications, app_handle)?;
+        self.app_cache = Some(applications);
         Ok(())
     }
 
@@ -176,15 +182,29 @@ impl Kasuri {
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<Vec<Application>> {
         let mut applications: Vec<Application>;
-        if !self.is_search_application_needed() {
-            log::debug!("Application search not needed, loading from repository");
-            applications = self.application_repository.get_applications()?;
-            self.setup_applications_icon_path(&mut applications, app_handle)?;
-        } else {
+
+        if self.is_search_application_needed() {
             log::debug!("Application search needed, scanning search paths");
-            applications = self.load_applications_from_search_path(app_handle)?;
+            self.load_applications_from_search_path(app_handle)?;
         }
 
+        log::debug!("Application search not needed, loading from repository");
+        applications = self.load_application_from_repository()?;
+        self.setup_applications_icon_path(&mut applications, app_handle)?;
+
+        Ok(applications)
+    }
+
+    /// Loads applications from the repository.
+    ///
+    /// This method retrieves all applications stored in the application's repository.
+    /// # Returns
+    ///
+    /// A `KasuriResult<Vec<Application>>` containing the loaded applications or an error
+    fn load_application_from_repository(&self) -> KasuriResult<Vec<Application>> {
+        log::debug!("Loading applications from repository");
+        let applications = self.application_repository.get_applications()?;
+        log::debug!("Loaded {} applications from repository", applications.len());
         Ok(applications)
     }
 
@@ -203,11 +223,11 @@ impl Kasuri {
     fn load_applications_from_search_path(
         &self,
         app_handle: &tauri::AppHandle,
-    ) -> KasuriResult<Vec<Application>> {
+    ) -> KasuriResult<()> {
         log::debug!("Beginning application scan from configured search paths");
         let cache_path = self.get_app_cache_path(app_handle)?;
         // Load applications from the specified paths
-        let mut applications: Vec<Application> = self
+        let search_path_applications: Vec<Application> = self
             .settings
             .get_application_search_path_list()
             .iter()
@@ -224,20 +244,21 @@ impl Kasuri {
             .collect();
         log::debug!("Updating last application search time");
         self.kasuri_repository.set_last_application_search_time()?;
-        
-        log::debug!("Found {} applications, updating repository", applications.len());
+
+        log::debug!(
+            "Found {} applications, updating repository",
+            search_path_applications.len()
+        );
         let new_applications = self
             .application_repository
-            .renew_applications(applications.clone())?;
-        
-        log::debug!("Creating application icons for {} new applications", new_applications.len());
+            .renew_applications(search_path_applications.clone())?;
+
+        log::debug!(
+            "Creating application icons for {} new applications",
+            new_applications.len()
+        );
         Application::create_app_icon(new_applications, &cache_path)?;
-        
-        log::debug!("Setting up icon paths for all applications");
-        self.setup_applications_icon_path(&mut applications, app_handle)?;
-        
-        log::debug!("Application loading complete, returning {} applications", applications.len());
-        Ok(applications)
+        Ok(())
     }
 
     /// Sets up icon paths for applications based on the application cache directory.
@@ -259,8 +280,11 @@ impl Kasuri {
         app_handle: &tauri::AppHandle,
     ) -> KasuriResult<()> {
         let cache_path = PathBuf::from_str(self.get_app_cache_path(app_handle)?.as_str())?;
-        log::debug!("Setting up icon paths using cache directory: {}", cache_path.display());
-        
+        log::debug!(
+            "Setting up icon paths using cache directory: {}",
+            cache_path.display()
+        );
+
         applications.iter_mut().for_each(|app| {
             let icon_name = app.get_icon_name();
             let icon_path = cache_path
@@ -268,7 +292,7 @@ impl Kasuri {
                 .join(&icon_name)
                 .to_string_lossy()
                 .to_string();
-            
+
             log::debug!("Setting icon path for '{}': {}", app.name, icon_path);
             app.icon_path = Some(icon_path);
         });
@@ -294,7 +318,7 @@ impl Kasuri {
             .into_os_string()
             .into_string()
             .unwrap();
-        
+
         log::debug!("Application cache path: {}", cache_path);
         Ok(cache_path)
     }
@@ -313,23 +337,24 @@ impl Kasuri {
             .kasuri_repository
             .get_last_application_search_time()
             .unwrap_or(0);
-        
+
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Failed to get current time")
             .as_secs();
-        
+
         let elapsed_time = now - last_application_search_time;
         let interval_seconds = self
             .settings
-            .get_application_search_interval_on_startup_minute() * 60;
-        
+            .get_application_search_interval_on_startup_minute()
+            * 60;
+
         log::debug!(
             "Time since last application search: {}s (interval: {}s)",
             elapsed_time,
             interval_seconds
         );
-        
+
         elapsed_time > interval_seconds
     }
 }

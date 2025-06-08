@@ -2,10 +2,12 @@
 /// This module provides functionality to work with Windows applications including
 /// standard executable files, shortcuts, and Windows Store apps.
 use md5::{Digest, Md5};
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::{ffi::OsStr, path::PathBuf, str::FromStr};
 
 use crate::{
     core::kasuri::KasuriResult,
+    repositories::application_repository::ApplicationRepositoryRecord,
     service::powershell::{PowerShell, PowerShellResult},
 };
 use walkdir::WalkDir;
@@ -24,6 +26,7 @@ pub struct Application {
     pub app_id: String,
     pub path: String,
     pub icon_path: Option<String>,
+    pub usage_recency_score: f64,
 }
 
 /// Structure representing a Windows Store application.
@@ -55,6 +58,7 @@ impl Application {
             app_id,
             path,
             icon_path: None,
+            usage_recency_score: 0.0, // Default score
         }
     }
 
@@ -373,5 +377,40 @@ impl Application {
             store_app.app_id.clone(),
             store_app.package_fullname.clone(),
         )
+    }
+}
+
+impl From<ApplicationRepositoryRecord> for Application {
+    /// Converts an ApplicationRepositoryRecord to an Application instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `record` - An ApplicationRepositoryRecord instance to convert
+    ///
+    /// # Returns
+    ///
+    /// A new Application instance initialized with the record's properties
+    fn from(record: ApplicationRepositoryRecord) -> Self {
+        // Convert ApplicationRepositoryRecord to Application and calculate time-decay score
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+
+        // Calculate days since last used
+        let days_since_last_used = if record.last_used > 0 && now > record.last_used {
+            (now - record.last_used) / 86400
+        } else {
+            0
+        };
+        // Calculate usage recency score: usage_count / (days_since_last_used + 1)
+        let usage_recency_score = record.usage_count as f64 / (days_since_last_used as f64 + 1.0);
+        Self {
+            name: record.name,
+            app_id: record.app_id,
+            path: record.path,
+            icon_path: None,
+            usage_recency_score,
+        }
     }
 }
