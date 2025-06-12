@@ -56,6 +56,9 @@ export class Backend {
     public async sendContentSize(
         contentSize: number,
     ): Promise<void> {
+        if (contentSize < 0) {
+            throw new Error("Content size cannot be negative");
+        }
         if (this.lastContentSize === contentSize) {
             return;
         }
@@ -79,6 +82,9 @@ export class Backend {
      * @returns A promise that resolves when the application is launched.
      */
     public async launch(application: Application): Promise<void> {
+        if (!application || !application.app_id) {
+            throw new Error("Invalid application object");
+        }
         await invoke(INVOKE_LAUNCH_APPLICATION, {
             appId: application.app_id,
         });
