@@ -37,6 +37,9 @@ pub struct Settings {
 
     /// Global shortcut key combination to show/hide the application
     shortcut_key: String,
+
+    /// List of application name aliases
+    application_name_aliases: Vec<ApplicationNameAlias>,
 }
 
 /// Internal structure for partial settings deserializatión.
@@ -62,6 +65,18 @@ struct PartialSettings {
 
     /// Optional global shortcut key
     shortcut_key: Option<String>,
+
+    /// Optional list of application name aliases
+    application_name_aliases: Option<Vec<ApplicationNameAlias>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApplicationNameAlias {
+    /// The path to the application executable
+    pub path: String,
+
+    /// The alias for the application
+    pub alias: String,
 }
 
 impl Settings {
@@ -171,6 +186,21 @@ impl Settings {
         self.shortcut_key.clone()
     }
 
+    /// Returns the list of application name aliases.
+    ///
+    /// This method provides access to the list of aliases for application names,
+    /// which can be used to refer to applications by alternative names.
+    /// # Returns
+    ///
+    /// A vector of `ApplicationNameAlias` objects.
+    pub fn get_application_name_aliases(&self) -> Vec<ApplicationNameAlias> {
+        log::debug!(
+            "Retrieving application name aliases: {:?}",
+            self.application_name_aliases
+        );
+        self.application_name_aliases.clone()
+    }
+
     /// Checks if the settings file exists in the expected location.
     ///
     /// This is a helper method used to determine whether default settings
@@ -247,6 +277,9 @@ impl Settings {
             shortcut_key: partial_settings
                 .shortcut_key
                 .unwrap_or_else(|| default_settings.shortcut_key),
+            application_name_aliases: partial_settings
+                .application_name_aliases
+                .unwrap_or_else(|| default_settings.application_name_aliases),
         };
 
         log::debug!("Settings loaded successfully: {:?}", settings);
@@ -284,6 +317,13 @@ impl Settings {
         Ok(())
     }
 
+    /// Returns the path to the settings file.
+    ///
+    /// This method constructs the path to the settings file based on the current executable's directory.
+    /// It assumes the settings file is located in the same directory as the executable.
+    /// # Returns
+    ///
+    /// A `PathBuf` representing the path to the settings file.
     fn get_settings_file_path() -> PathBuf {
         std::env::current_exe()
             .unwrap()
