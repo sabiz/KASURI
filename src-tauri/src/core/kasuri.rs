@@ -73,7 +73,7 @@ impl Kasuri {
     ///
     /// A `KasuriResult<()>` indicating success or failure of the initialization
     pub fn init(&mut self, app_handle: &tauri::AppHandle) -> KasuriResult<()> {
-        self.app_cache = Some(self.load_applications_from_search_path_if_needed(app_handle)?);
+        self.set_app_cache(self.load_applications_from_search_path_if_needed(app_handle)?);
         Ok(())
     }
 
@@ -160,7 +160,7 @@ impl Kasuri {
         self.load_applications_from_search_path(app_handle)?;
         let mut applications = self.load_application_from_repository()?;
         self.setup_applications_icon_path(&mut applications, app_handle)?;
-        self.app_cache = Some(applications);
+        self.set_app_cache(applications);
         Ok(())
     }
 
@@ -356,5 +356,14 @@ impl Kasuri {
         );
 
         elapsed_time > interval_seconds
+    }
+
+    /// TODO
+    fn set_app_cache(&mut self, applications: Vec<Application>) {
+        log::debug!(
+            "Setting application cache with {} applications",
+            applications.len()
+        );
+        self.app_cache = Some(applications);
     }
 }
