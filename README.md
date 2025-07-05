@@ -15,6 +15,7 @@ It also carries the self-deprecating wordplay of "Kasu na Launcher" in Japanese,
 - **System Tray Integration**: Always accessible from your system tray
 - **Global Hotkey**: Open the launcher from anywhere with a configurable shortcut key
 - **Windows Store App Support**: Search and launch both traditional and Windows Store applications
+- **Application Alias Support**: Assign aliases to applications for easier searching
 - **Automatic Startup Option**: Start KASURI with Windows
 - **Lightweight**: Minimal resource usage when idle
 
@@ -73,12 +74,33 @@ Settings can be configured in `settings.toml` located in the KASURI application 
 - `log_level`: Logging verbosity (error, warn, info, debug)
 - `application_search_path_list`: Directories to search for applications
 - `application_search_interval_on_startup_minute`: How often to refresh the application cache
+- `application_name_aliases`: List of aliases for applications. Each alias entry should specify the application's path and the desired alias name. Example:
+
+```toml
+[[application_name_aliases]]
+path = "C:/Program Files/ExampleApp/Example.exe"
+alias = "exapp"
+```
+
+> **Note:**
+> The `path` specified in each `application_name_aliases` entry must exactly match the path of an application discovered via `application_search_path_list` (such as `.lnk` or `.exe` files). If the path does not match, the alias will not be applied.
 
 ## :chicken:FAQ
 
 ### How do I change the hotkey?
 
 Edit the `shortcut_key` setting in the `settings.toml` file. The format follows the [Tauri global shortcut](https://tauri.app/v1/api/js/globalShortcut/) convention.
+
+### How do I set an alias for an application?
+
+Add an entry to the `application_name_aliases` section in your `settings.toml` file. Specify the application's path and the alias you want to use. For example:
+
+```toml
+[[application_name_aliases]]
+path = "C:/Program Files/ExampleApp/Example.exe"
+alias = "exapp"
+```
+You can now search for the application using either its original name or the alias.
 
 ### Why doesn't KASURI find some of my applications?
 

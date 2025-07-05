@@ -64,7 +64,11 @@ impl FuzzySorter {
             .into_iter()
             .map(|app| {
                 let score = self.matcher.fuzzy_match(&app.name, query).unwrap_or(0);
-                (app, score)
+                let alias_score = app
+                    .alias
+                    .as_ref()
+                    .map_or(0, |a| self.matcher.fuzzy_match(&a, query).unwrap_or(0));
+                (app, score.max(alias_score))
             })
             .collect();
 
