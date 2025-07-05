@@ -8,3 +8,5 @@ log_level = "info"
 width = 800
 auto_startup = false
 shortcut_key = "alt+Space"
+
+application_name_aliases = []

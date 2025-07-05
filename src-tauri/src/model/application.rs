@@ -23,6 +23,7 @@ const SAVE_APP_ICON_SCRIPT: &str = include_str!("../scripts/save_app_icon.ps1");
 #[derive(Clone, Debug)]
 pub struct Application {
     pub name: String,
+    pub alias: Option<String>,
     pub app_id: String,
     pub path: String,
     pub icon_path: Option<String>,
@@ -55,6 +56,7 @@ impl Application {
     pub fn new(name: String, app_id: String, path: String) -> Self {
         Self {
             name,
+            alias: None, // Alias is optional and can be set later
             app_id,
             path,
             icon_path: None,
@@ -407,6 +409,7 @@ impl From<ApplicationRepositoryRecord> for Application {
         let usage_recency_score = record.usage_count as f64 / (days_since_last_used as f64 + 1.0);
         Self {
             name: record.name,
+            alias: None,
             app_id: record.app_id,
             path: record.path,
             icon_path: None,

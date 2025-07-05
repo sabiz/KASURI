@@ -73,7 +73,7 @@ impl Kasuri {
     ///
     /// A `KasuriResult<()>` indicating success or failure of the initialization
     pub fn init(&mut self, app_handle: &tauri::AppHandle) -> KasuriResult<()> {
-        self.app_cache = Some(self.load_applications_from_search_path_if_needed(app_handle)?);
+        self.set_app_cache(self.load_applications_from_search_path_if_needed(app_handle)?)?;
         Ok(())
     }
 
@@ -160,7 +160,7 @@ impl Kasuri {
         self.load_applications_from_search_path(app_handle)?;
         let mut applications = self.load_application_from_repository()?;
         self.setup_applications_icon_path(&mut applications, app_handle)?;
-        self.app_cache = Some(applications);
+        self.set_app_cache(applications)?;
         Ok(())
     }
 
@@ -356,5 +356,41 @@ impl Kasuri {
         );
 
         elapsed_time > interval_seconds
+    }
+
+    /// Sets the application cache with a list of applications.
+    /// This method updates the in-memory cache of applications
+    /// and assigns aliases to applications based on the settings.
+    /// # Arguments
+    ///
+    /// * `applications` - A vector of `Application` objects to cache
+    ///
+    /// # Returns
+    ///
+    /// A `KasuriResult<()>` indicating success or failure of the operation
+    fn set_app_cache(&mut self, applications: Vec<Application>) -> KasuriResult<()> {
+        log::debug!(
+            "Setting application cache with {} applications",
+            applications.len()
+        );
+        let alias_map = self
+            .settings
+            .get_application_name_aliases()
+            .iter()
+            .map(|v| (v.path.clone(), v.clone()))
+            .collect::<std::collections::HashMap<_, _>>();
+        self.app_cache = Some(
+            applications
+                .into_iter()
+                .map(|mut app| {
+                    if let Some(alias) = alias_map.get(&app.path).map(|v| v.alias.clone()) {
+                        log::debug!("Setting alias '{}' for application '{}'", alias, app.name);
+                        app.alias = Some(alias);
+                    }
+                    app
+                })
+                .collect::<Vec<_>>(),
+        );
+        Ok(())
     }
 }
