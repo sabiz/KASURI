@@ -21,7 +21,7 @@ enable = true
 allow = ["$APPCACHE/*.png"]
 
 [app.trayIcon]
-iconPath = "icons/kasuri.ico"
+iconPath = "../res/kasuri.ico"
 id = "main"
 menuOnLeftClick = true
 showMenuOnLeftClick = true

@@ -1,5 +1,7 @@
 # KASURI👘
 
+![icon](./res/kasuri.ico)
+
 The name "KASURI" is derived from the traditional Japanese "Kasuri" (絣) pattern used in textiles. 
 It also carries the self-deprecating wordplay of "Kasu na Launcher" in Japanese, which humorously refers to itself as a "poor/useless launcher". 😅
 
