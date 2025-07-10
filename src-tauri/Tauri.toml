@@ -51,7 +51,7 @@ url = "index.html"
 [bundle]
 active = true
 targets = "nsis"
-icon = ["icons/kasuri.ico"]
+icon = ["../res/kasuri.ico"]
 category = "Utility"
 copyright = "© 2025 sabiz"
 homepage = "https://github.com/sabiz/KASURI"
