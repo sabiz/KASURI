@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use crate::core::kasuri::Kasuri;
 use crate::core::kasuri::KasuriResult;
+use crate::core::log::get_log_directory;
 
 use crate::core::log::set_log_level_str;
 use crate::core::settings::Settings;
@@ -14,6 +15,7 @@ use tauri::tray::TrayIconEvent;
 use tauri::{App, LogicalSize, Manager};
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_global_shortcut::Shortcut;
+use tauri_plugin_opener::OpenerExt;
 
 /// Window ID
 const WINDOW_ID: &str = "main";
@@ -57,6 +59,7 @@ pub fn run() -> KasuriResult<()> {
     set_log_level_str(settings.get_log_level().as_str());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             search_application,
             changed_content_size,
@@ -244,7 +247,14 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
     let tray_icon_main = app.tray_by_id(TRAY_ICON_ID).unwrap();
     let item_exit = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
     let item_reload = MenuItem::with_id(app, "reload", "Reload", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&item_reload, &item_exit])?;
+    let item_open_log_dir = MenuItem::with_id(
+        app,
+        "open_log_dir",
+        "Open Log Directory",
+        true,
+        None::<&str>,
+    )?;
+    let menu = Menu::with_items(app, &[&item_reload, &item_open_log_dir, &item_exit])?;
     tray_icon_main.set_menu(Some(menu))?;
     tray_icon_main.on_menu_event(|app, event| match event.id.as_ref() {
         "exit" => {
@@ -258,6 +268,14 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
                 .unwrap()
                 .load_applications_to_cache(app)
                 .expect("Failed to reload applications");
+        }
+        "open_log_dir" => {
+            log::debug!("Open log directory menu item clicked");
+            let log_dir = get_log_directory();
+            log::debug!("Opening log directory: {:?}", log_dir);
+            app.opener()
+                .open_path(log_dir.to_string_lossy(), None::<&str>)
+                .expect("Failed to open log directory");
         }
         _ => {
             log::warn!("Unknown menu item clicked: {}", event.id.0);
