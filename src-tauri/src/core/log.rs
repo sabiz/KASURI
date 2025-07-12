@@ -10,6 +10,10 @@ static INSTANCE: LazyLock<Mutex<Logger>> = LazyLock::new(|| {
     })
 });
 
+/// Returns the path to the log directory.
+/// This function constructs the path to the `logs` directory located next to the executable.
+/// # Returns
+/// A `PathBuf` representing the log directory.
 pub fn get_log_directory() -> PathBuf {
     std::env::current_exe()
         .unwrap()
