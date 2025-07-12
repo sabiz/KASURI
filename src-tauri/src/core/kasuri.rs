@@ -1,5 +1,3 @@
-use tauri::Manager;
-
 use crate::core::kasuri_app::AppForView;
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
@@ -12,6 +10,7 @@ use crate::service::fuzzy_sorter::FuzzySorter;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::Manager;
 
 /// Represents a Result type for Kasuri operations.
 ///

@@ -1,11 +1,22 @@
 use rolling_file::{BasicRollingFileAppender, RollingConditionBasic};
-use std::sync::{LazyLock, Mutex};
+use std::{
+    path::PathBuf,
+    sync::{LazyLock, Mutex},
+};
 
 static INSTANCE: LazyLock<Mutex<Logger>> = LazyLock::new(|| {
     Mutex::new(Logger {
         level: log::LevelFilter::Info,
     })
 });
+
+pub fn get_log_directory() -> PathBuf {
+    std::env::current_exe()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("logs")
+}
 
 /// Initializes the logger for the KASURI application.
 /// This function sets up a global logger that writes logs to both the console and a rolling file.
@@ -20,11 +31,7 @@ pub fn init_logger() -> () {
     let top_dispatch = fern::Dispatch::new();
     let console_dispatch = fern::Dispatch::new().chain(std::io::stdout());
 
-    let log_dir = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .join("logs");
+    let log_dir = get_log_directory();
     if !log_dir.exists() {
         std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     }
