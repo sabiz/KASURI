@@ -4,6 +4,10 @@ use std::{
     sync::{LazyLock, Mutex},
 };
 
+const LOG_FILE_NAME: &str = "KASURI.log";
+const LOG_FILE_MAX_SIZE: u64 = 10 * 1024 * 1024; // 10 MB
+const LOG_FILE_KEEP: usize = 5; // Keep 5 old log files
+
 static INSTANCE: LazyLock<Mutex<Logger>> = LazyLock::new(|| {
     Mutex::new(Logger {
         level: log::LevelFilter::Info,
@@ -40,11 +44,9 @@ pub fn init_logger() -> () {
         std::fs::create_dir_all(&log_dir).expect("Failed to create log directory");
     }
     let log_file = BasicRollingFileAppender::new(
-        log_dir.join("KASURI.log"),
-        RollingConditionBasic::new().max_size(
-            10 * 1024 * 1024, // 10 MB
-        ),
-        5, // Keep 5 old log files
+        log_dir.join(LOG_FILE_NAME),
+        RollingConditionBasic::new().max_size(LOG_FILE_MAX_SIZE),
+        LOG_FILE_KEEP,
     )
     .expect("Failed to create rolling file appender");
 

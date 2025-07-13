@@ -5,8 +5,8 @@ use md5::{Digest, Md5};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{ffi::OsStr, path::PathBuf, str::FromStr};
 
+use crate::KasuriResult;
 use crate::{
-    core::kasuri::KasuriResult,
     repositories::application_repository::ApplicationRepositoryRecord,
     service::powershell::{PowerShell, PowerShellResult},
 };

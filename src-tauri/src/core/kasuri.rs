@@ -1,4 +1,4 @@
-use crate::core::kasuri_app::AppForView;
+use crate::KasuriResult;
 use crate::core::settings::{
     SETTINGS_VALUE_APPLICATION_SEARCH_PATH_LIST_WINDOWS_STORE_APP, Settings,
 };
@@ -7,16 +7,11 @@ use crate::repositories::application_repository::ApplicationRepository;
 use crate::repositories::kasuri_repository::KasuriRepository;
 use crate::repositories::repository_initializer::RepositoryInitializer;
 use crate::service::fuzzy_sorter::FuzzySorter;
+use crate::ui::AppForView;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Manager;
-
-/// Represents a Result type for Kasuri operations.
-///
-/// This type alias simplifies error handling throughout the application by
-/// wrapping any error type in a Box<dyn std::error::Error>.
-pub type KasuriResult<T> = Result<T, Box<dyn std::error::Error>>;
 
 /// Maximum number of search results to display to the user.
 const SEARCH_RESULT_LIMIT: usize = 6;

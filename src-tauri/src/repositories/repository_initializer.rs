@@ -3,7 +3,7 @@
 //! This module provides functionality for initializing database repositories
 //! and managing database versions for the KASURI application.
 
-use crate::core::kasuri::KasuriResult;
+use crate::KasuriResult;
 use crate::repositories::application_repository::ApplicationRepository;
 use crate::repositories::kasuri_repository::KasuriRepository;
 use sqlite::Connection;

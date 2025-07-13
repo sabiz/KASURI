@@ -1,4 +1,4 @@
-use crate::core::kasuri::KasuriResult;
+use crate::KasuriResult;
 use serde::de::DeserializeOwned;
 use std::io::{Error, ErrorKind, Write};
 use std::os::windows::process::CommandExt;
