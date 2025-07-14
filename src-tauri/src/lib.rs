@@ -97,7 +97,12 @@ impl Kasuri {
     ///
     /// A vector of simplified application objects ready to be displayed in the UI
     pub fn handle_search_application(&self, query: &str) -> Vec<AppForView> {
-        let applications = self.app_cache.clone().unwrap_or_default();
+        let empty_vec = Vec::new();
+        let applications = self
+            .app_cache
+            .as_ref()
+            .map(|v| &v[..])
+            .unwrap_or(&empty_vec[..]);
         let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
         let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);
 

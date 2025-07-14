@@ -42,16 +42,16 @@ impl FuzzySorter {
     /// # Arguments
     ///
     /// * `query` - The search query string to match against application names
-    /// * `applications` - A vector of Application objects to sort and filter
+    /// * `applications` - A slice of Application objects to be filtered and sorted
     ///
     /// # Returns
     ///
-    /// A sorted and filtered vector of Application objects, with best matches first
-    pub fn sort_with_filter(
+    /// A vector of references to Application objects that matched the query above the minimum score threshold,
+    pub fn sort_with_filter<'a>(
         &self,
         query: &str,
-        applications: Vec<Application>,
-    ) -> Vec<Application> {
+        applications: &'a [Application],
+    ) -> Vec<&'a Application> {
         log::debug!(
             "Performing fuzzy search with query: '{}' on {} applications",
             query,
@@ -60,8 +60,8 @@ impl FuzzySorter {
 
         // Calculate fuzzy match scores for each application
         log::debug!("Calculating fuzzy match scores for all applications");
-        let mut applications_with_scores: Vec<_> = applications
-            .into_iter()
+        let mut applications_with_scores = applications
+            .iter()
             .map(|app| {
                 let score = self.matcher.fuzzy_match(&app.name, query).unwrap_or(0);
                 let alias_score = app
@@ -70,7 +70,7 @@ impl FuzzySorter {
                     .map_or(0, |a| self.matcher.fuzzy_match(&a, query).unwrap_or(0));
                 (app, score.max(alias_score))
             })
-            .collect();
+            .collect::<Vec<_>>();
 
         // Sort applications by score in descending order
         log::debug!("Sorting applications by fuzzy match score");
@@ -97,8 +97,7 @@ impl FuzzySorter {
                 );
                 app
             })
-            // .map(|(app, _)| app)
-            .collect::<Vec<Application>>();
+            .collect::<Vec<_>>();
 
         let filtered_count = filtered_results.len();
         log::debug!(
@@ -137,7 +136,7 @@ mod tests {
         let sorter = FuzzySorter::new();
         let query = "e";
 
-        let results = sorter.sort_with_filter(query, applications);
+        let results = sorter.sort_with_filter(query, &applications);
         assert!(results.len() <= 5);
         assert!(
             results
@@ -145,8 +144,8 @@ mod tests {
                 .all(|app| app.name.contains('e') || app.name.contains('E'))
         );
         for i in 1..results.len() {
-            let prev = &results[i - 1];
-            let curr = &results[i];
+            let prev = results[i - 1];
+            let curr = results[i];
             let prev_score = sorter.matcher.fuzzy_match(&prev.name, query).unwrap_or(0);
             let curr_score = sorter.matcher.fuzzy_match(&curr.name, query).unwrap_or(0);
             if prev_score == curr_score {
@@ -173,7 +172,7 @@ mod tests {
         let sorter = FuzzySorter::new();
         let query = "";
 
-        let results = sorter.sort_with_filter(query, applications);
+        let results = sorter.sort_with_filter(query, &applications);
         assert_eq!(results.len(), 0);
     }
 
@@ -193,7 +192,7 @@ mod tests {
         let sorter = FuzzySorter::new();
         let query = "z";
 
-        let results = sorter.sort_with_filter(query, applications);
+        let results = sorter.sort_with_filter(query, &applications);
         assert_eq!(results.len(), 0);
     }
 }
