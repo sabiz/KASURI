@@ -1,4 +1,4 @@
-use crate::core::kasuri::KasuriResult;
+use crate::KasuriResult;
 use sqlite::{ConnectionThreadSafe, State::Row};
 use std::time::{SystemTime, UNIX_EPOCH};
 

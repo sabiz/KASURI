@@ -1,4 +1,4 @@
-use crate::core::kasuri::KasuriResult;
+use crate::KasuriResult;
 use crate::model::application::Application;
 use sqlite::ConnectionThreadSafe;
 use sqlite::State::Row;
