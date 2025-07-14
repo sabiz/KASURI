@@ -3,15 +3,15 @@ use super::MENU_ID_EXIT;
 use super::MENU_ID_OPEN_LOG_DIR;
 use super::MENU_ID_RELOAD;
 use super::WINDOW_ID;
-use crate::core::kasuri::Kasuri;
-use crate::core::log::get_log_directory;
 use global_hotkey::GlobalHotKeyEvent;
 use global_hotkey::HotKeyState;
+use kasuri::Kasuri;
+use kasuri::core::log::get_log_directory;
 use std::sync::Mutex;
 use tauri::menu::MenuEvent;
 use tauri::tray::TrayIcon;
 use tauri::tray::TrayIconEvent;
-use tauri::{AppHandle, Emitter, LogicalSize, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_global_shortcut::Shortcut;
 use tauri_plugin_opener::OpenerExt;
 

@@ -1,22 +1,19 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod core;
-mod model;
-mod repositories;
-mod service;
 mod ui;
 
-use crate::core::kasuri::Kasuri;
-use crate::core::log::set_log_level_str;
-use crate::core::settings::Settings;
 use crate::ui::WINDOW_ID;
 use crate::ui::command::{
     changed_content_size, close_window, launch_application, search_application,
 };
 use crate::ui::event_handler::{on_global_shortcut, on_menu_event, on_tray_icon_event};
 use crate::ui::{MENU_ID_EXIT, MENU_ID_OPEN_LOG_DIR, MENU_ID_RELOAD};
+use kasuri::Kasuri;
 use kasuri::KasuriResult;
+use kasuri::core::log::init_logger;
+use kasuri::core::log::set_log_level_str;
+use kasuri::core::settings::Settings;
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem};
 use tauri::{App, LogicalSize, Manager};
@@ -123,7 +120,7 @@ fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
 
 /// Main function to start the Kasuri application.
 fn main() {
-    core::log::init_logger();
+    init_logger();
     if let Err(e) = run() {
         log::error!("Kasuri error: {}", e);
         std::process::exit(1);

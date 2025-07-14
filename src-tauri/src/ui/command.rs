@@ -1,6 +1,6 @@
-use super::AppForView;
 use super::WINDOW_ID;
-use crate::core::kasuri::Kasuri;
+use kasuri::Kasuri;
+use kasuri::model::AppForView;
 use std::sync::Mutex;
 use tauri::{LogicalSize, Manager};
 
