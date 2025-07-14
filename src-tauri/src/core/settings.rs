@@ -113,12 +113,12 @@ impl Settings {
     /// # Returns
     ///
     /// A vector of directory paths as strings.
-    pub fn get_application_search_path_list(&self) -> Vec<String> {
+    pub fn get_application_search_path_list(&self) -> &Vec<String> {
         log::debug!(
             "Retrieving application search paths: {:?}",
             self.application_search_path_list
         );
-        self.application_search_path_list.clone()
+        &self.application_search_path_list
     }
 
     /// Returns the application search interval on startup in minutes.
@@ -145,9 +145,9 @@ impl Settings {
     /// # Returns
     ///
     /// The log level as a string.
-    pub fn get_log_level(&self) -> String {
+    pub fn get_log_level(&self) -> &String {
         log::debug!("Retrieving log level: {}", self.log_level);
-        self.log_level.clone()
+        &self.log_level
     }
 
     /// Returns the width of the main application window.
@@ -181,9 +181,9 @@ impl Settings {
     /// # Returns
     ///
     /// The shortcut key combination as a string.
-    pub fn get_shortcut_key(&self) -> String {
+    pub fn get_shortcut_key(&self) -> &String {
         log::debug!("Retrieving shortcut key: {}", self.shortcut_key);
-        self.shortcut_key.clone()
+        &self.shortcut_key
     }
 
     /// Returns the list of application name aliases.
@@ -193,12 +193,12 @@ impl Settings {
     /// # Returns
     ///
     /// A vector of `ApplicationNameAlias` objects.
-    pub fn get_application_name_aliases(&self) -> Vec<ApplicationNameAlias> {
+    pub fn get_application_name_aliases(&self) -> &Vec<ApplicationNameAlias> {
         log::debug!(
             "Retrieving application name aliases: {:?}",
             self.application_name_aliases
         );
-        self.application_name_aliases.clone()
+        &self.application_name_aliases
     }
 
     /// Checks if the settings file exists in the expected location.
