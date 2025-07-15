@@ -162,7 +162,7 @@ impl Application {
     /// # Returns
     ///
     /// A Result indicating success or containing an error if the operation failed
-    pub fn create_app_icon(applications: Vec<Self>, store_base_path: &String) -> KasuriResult<()> {
+    pub fn create_app_icon(applications: Vec<&Self>, store_base_path: &String) -> KasuriResult<()> {
         log::info!(
             "Creating application icons for {} applications",
             applications.len()

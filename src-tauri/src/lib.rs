@@ -260,7 +260,7 @@ impl Kasuri {
         );
         let new_applications = self
             .application_repository
-            .renew_applications(search_path_applications.clone())?;
+            .renew_applications(&search_path_applications[..])?;
 
         log::debug!(
             "Creating application icons for {} new applications",
