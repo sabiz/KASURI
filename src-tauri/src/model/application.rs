@@ -173,40 +173,32 @@ impl Application {
         let (app_paths, icon_paths) =
             applications
                 .iter()
-                .fold((vec![], vec![]), |(mut e_path, mut i_path), app| {
+                .fold((vec![], vec![]), |(mut a_path, mut i_path), app| {
+                    log::debug!("Processing icon for app: {}", app.name);
+                    if app.path.contains("\\") {
+                        log::debug!("Standard app path: {}", &app.path);
+                        a_path.push(format!("\"{}\"", &app.path));
+                    } else {
+                        // For windows store apps
+                        let package_id = app.path.split("_").collect::<Vec<_>>()[0].to_string();
+                        log::debug!("Windows Store app package ID: {}", package_id);
+                        a_path.push(format!("\"{}\"", package_id));
+                    }
+
                     let icon_path = PathBuf::from_str(&store_base_path)
                         .unwrap()
                         .join(app.get_icon_name())
                         .into_os_string()
                         .into_string()
+                        .and_then(|s| Ok(format!("\"{}\"", s)))
                         .unwrap();
-
-                    log::debug!("Processing icon for app: {}", app.name);
-                    if app.path.contains("\\") {
-                        log::debug!("Standard app path: {}", app.path);
-                        e_path.push(app.path.clone());
-                    } else {
-                        // For windows store apps
-                        let package_id =
-                            app.path.clone().split("_").collect::<Vec<_>>()[0].to_string();
-                        log::debug!("Windows Store app package ID: {}", package_id);
-                        e_path.push(package_id);
-                    }
                     log::debug!("Icon will be saved to: {}", icon_path);
-                    i_path.push(icon_path.clone());
-                    (e_path, i_path)
+                    i_path.push(icon_path);
+                    (a_path, i_path)
                 });
 
-        let app_paths = app_paths
-            .iter()
-            .map(|s| format!("\"{}\"", s))
-            .collect::<Vec<_>>()
-            .join(",");
-        let icon_paths = icon_paths
-            .iter()
-            .map(|s| format!("\"{}\"", s))
-            .collect::<Vec<_>>()
-            .join(",");
+        let app_paths = app_paths.join(",");
+        let icon_paths = icon_paths.join(",");
 
         log::debug!("Preparing PowerShell command to extract icons");
         let command = SAVE_APP_ICON_SCRIPT
