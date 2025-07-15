@@ -71,13 +71,13 @@ impl ApplicationRepository {
     /// # Errors
     ///
     /// Returns an error if any database operation fails (prepare, bind, insert, delete)
-    pub fn renew_applications(
+    pub fn renew_applications<'a>(
         &self,
-        applications: Vec<Application>,
-    ) -> KasuriResult<Vec<Application>> {
+        applications: &'a [Application],
+    ) -> KasuriResult<Vec<&'a Application>> {
         let mut hash_map = applications
-            .iter()
-            .map(|v| (v.app_id.clone(), v))
+            .into_iter()
+            .map(|v| (&v.app_id, v))
             .collect::<HashMap<_, _>>();
         let mut delete_applications: Vec<String> = vec![];
 
@@ -87,14 +87,14 @@ impl ApplicationRepository {
             if hash_map.contains_key(&app_id) {
                 hash_map.remove(&app_id);
             } else {
-                delete_applications.push(app_id.clone());
+                delete_applications.push(app_id);
             }
         }
 
         let new_applications = hash_map
             .iter()
-            .map(|(_, app)| (**app).clone())
-            .collect::<Vec<Application>>();
+            .map(|(_, app)| *app)
+            .collect::<Vec<&Application>>();
 
         if delete_applications.len() > 0 {
             log::info!(
@@ -123,7 +123,7 @@ impl ApplicationRepository {
             log::info!(
                 "Inserting {} new applications into database: {:?}",
                 new_applications.len(),
-                new_applications
+                &new_applications
             );
             let values_placeholders = (0..new_applications.len())
                 .map(|_| "(?, ?, ?)")
