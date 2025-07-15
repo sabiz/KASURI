@@ -97,23 +97,21 @@ impl Kasuri {
     ///
     /// A vector of simplified application objects ready to be displayed in the UI
     pub fn handle_search_application(&self, query: &str) -> Vec<AppForView> {
-        let empty_vec = Vec::new();
-        let applications = self
-            .app_cache
-            .as_ref()
-            .map(|v| &v[..])
-            .unwrap_or(&empty_vec[..]);
-        let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
-        let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);
-
-        sorted_apps[..limit]
-            .iter()
-            .map(|app| AppForView {
-                name: app.name.clone(),
-                app_id: app.app_id.clone(),
-                icon_path: app.icon_path.clone().unwrap_or_default(),
-            })
-            .collect()
+        if let Some(applications) = self.app_cache.as_ref().map(|v| &v[..]) {
+            let sorted_apps = self.fuzzy_sorter.sort_with_filter(query, applications);
+            let limit = std::cmp::min(sorted_apps.len(), SEARCH_RESULT_LIMIT);
+            sorted_apps[..limit]
+                .iter()
+                .map(|app| AppForView {
+                    name: app.name.clone(),
+                    app_id: app.app_id.clone(),
+                    icon_path: app.icon_path.clone().unwrap_or_default(),
+                })
+                .collect()
+        } else {
+            log::warn!("Application cache is not initialized, returning empty search results");
+            vec![]
+        }
     }
 
     /// Launches the specified application using its app ID.
@@ -296,11 +294,7 @@ impl Kasuri {
 
         applications.iter_mut().for_each(|app| {
             let icon_name = app.get_icon_name();
-            let icon_path = cache_path
-                .clone()
-                .join(&icon_name)
-                .to_string_lossy()
-                .to_string();
+            let icon_path = cache_path.join(&icon_name).to_string_lossy().to_string();
 
             log::debug!("Setting icon path for '{}': {}", app.name, icon_path);
             app.icon_path = Some(icon_path);
@@ -386,7 +380,7 @@ impl Kasuri {
             .settings
             .get_application_name_aliases()
             .iter()
-            .map(|v| (v.path.clone(), v.clone()))
+            .map(|v| (&v.path, v))
             .collect::<std::collections::HashMap<_, _>>();
         self.app_cache = Some(
             applications
