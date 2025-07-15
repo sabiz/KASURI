@@ -1,8 +1,4 @@
-use super::EVENT_WINDOW_SHOW;
-use super::MENU_ID_EXIT;
-use super::MENU_ID_OPEN_LOG_DIR;
-use super::MENU_ID_RELOAD;
-use super::WINDOW_ID;
+use super::{EVENT_WINDOW_SHOW, MenuId, WINDOW_ID};
 use global_hotkey::GlobalHotKeyEvent;
 use global_hotkey::HotKeyState;
 use kasuri::Kasuri;
@@ -55,29 +51,33 @@ pub fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHot
 /// It processes the menu event based on the item ID and performs the corresponding action.
 /// Currently, it handles exit, reload, and open log directory actions.
 pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
-    match event.id.as_ref() {
-        MENU_ID_EXIT => {
-            log::debug!("Exit menu item clicked");
-            app.exit(0);
+    match event.id.as_ref().parse::<MenuId>() {
+        Err(_) => {
+            log::warn!("Unknown menu item clicked: {}", event.id.as_ref());
+            return;
         }
-        MENU_ID_RELOAD => {
-            log::debug!("Reload menu item clicked");
-            app.state::<Mutex<Kasuri>>()
-                .lock()
-                .unwrap()
-                .load_applications_to_cache(app)
-                .expect("Failed to reload applications");
-        }
-        MENU_ID_OPEN_LOG_DIR => {
-            log::debug!("Open log directory menu item clicked");
-            let log_dir = get_log_directory();
-            log::debug!("Opening log directory: {:?}", log_dir);
-            app.opener()
-                .open_path(log_dir.to_string_lossy(), None::<&str>)
-                .expect("Failed to open log directory");
-        }
-        _ => {
-            log::warn!("Unknown menu item clicked: {}", event.id.0);
+        Ok(menu_id) => {
+            log::debug!("Menu item clicked: {}", menu_id);
+            match menu_id {
+                MenuId::Exit => {
+                    app.exit(0);
+                }
+                MenuId::Reload => {
+                    app.state::<Mutex<Kasuri>>()
+                        .lock()
+                        .unwrap()
+                        .load_applications_to_cache(app)
+                        .expect("Failed to reload applications");
+                }
+                MenuId::OpenLogDir => {
+                    let log_dir = get_log_directory();
+                    log::debug!("Opening log directory: {:?}", log_dir);
+                    app.opener()
+                        .open_path(log_dir.to_string_lossy(), None::<&str>)
+                        .expect("Failed to open log directory");
+                }
+                MenuId::Settings => {}
+            }
         }
     }
 }

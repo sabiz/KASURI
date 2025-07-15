@@ -3,12 +3,12 @@
 
 mod ui;
 
+use crate::ui::MenuId;
 use crate::ui::WINDOW_ID;
 use crate::ui::command::{
     changed_content_size, close_window, launch_application, search_application,
 };
 use crate::ui::event_handler::{on_global_shortcut, on_menu_event, on_tray_icon_event};
-use crate::ui::{MENU_ID_EXIT, MENU_ID_OPEN_LOG_DIR, MENU_ID_RELOAD};
 use kasuri::Kasuri;
 use kasuri::KasuriResult;
 use kasuri::core::log::init_logger;
@@ -102,16 +102,20 @@ fn run() -> KasuriResult<()> {
 fn create_system_tray_menu(app: &App) -> KasuriResult<()> {
     // See Tauri.toml for basic settings.
     let tray_icon_main = app.tray_by_id(TRAY_ICON_ID).unwrap();
-    let item_exit = MenuItem::with_id(app, MENU_ID_EXIT, "Exit", true, None::<&str>)?;
-    let item_reload = MenuItem::with_id(app, MENU_ID_RELOAD, "Reload", true, None::<&str>)?;
+    let item_exit = MenuItem::with_id(app, MenuId::Exit, "Exit", true, None::<&str>)?;
+    let item_reload = MenuItem::with_id(app, MenuId::Reload, "Reload", true, None::<&str>)?;
     let item_open_log_dir = MenuItem::with_id(
         app,
-        MENU_ID_OPEN_LOG_DIR,
+        MenuId::OpenLogDir,
         "Open Log Directory",
         true,
         None::<&str>,
     )?;
-    let menu = Menu::with_items(app, &[&item_reload, &item_open_log_dir, &item_exit])?;
+    let item_settings = MenuItem::with_id(app, MenuId::Settings, "Settings", true, None::<&str>)?;
+    let menu = Menu::with_items(
+        app,
+        &[&item_settings, &item_reload, &item_open_log_dir, &item_exit],
+    )?;
     tray_icon_main.set_menu(Some(menu))?;
     tray_icon_main.on_menu_event(on_menu_event);
     tray_icon_main.on_tray_icon_event(on_tray_icon_event);
