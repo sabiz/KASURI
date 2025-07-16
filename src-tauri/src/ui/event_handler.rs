@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use tauri::menu::MenuEvent;
 use tauri::tray::TrayIcon;
 use tauri::tray::TrayIconEvent;
-use tauri::{AppHandle, Emitter, Manager, WindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewWindowBuilder};
 use tauri_plugin_global_shortcut::Shortcut;
 use tauri_plugin_opener::OpenerExt;
 
@@ -106,7 +106,9 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
                         .next()
                         .expect("Settings window not found");
 
-                    if let Ok(window_builder) = WindowBuilder::from_config(app, window_config) {
+                    if let Ok(window_builder) =
+                        WebviewWindowBuilder::from_config(app, window_config)
+                    {
                         if let Ok(window) = window_builder.build() {
                             log::debug!("Settings window created successfully");
                             if let Err(e) = window.show() {
