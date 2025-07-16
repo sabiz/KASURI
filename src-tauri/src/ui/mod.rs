@@ -2,7 +2,8 @@ pub mod command;
 pub mod event_handler;
 
 /// Window ID
-pub const WINDOW_ID: &str = "main";
+pub const WINDOW_ID_MAIN: &str = "main";
+pub const WINDOW_ID_SETTINGS: &str = "settings";
 
 /// Event name for window show action
 ///

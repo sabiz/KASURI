@@ -1,4 +1,4 @@
-use super::WINDOW_ID;
+use super::WINDOW_ID_MAIN;
 use kasuri::Kasuri;
 use kasuri::model::AppForView;
 use std::sync::Mutex;
@@ -26,7 +26,7 @@ pub fn changed_content_size(
 ) {
     log::debug!("Content size changed: height={}", content_height);
     let window = app_handle
-        .get_window(WINDOW_ID)
+        .get_window(WINDOW_ID_MAIN)
         .expect("Failed to get main window");
     if let Err(e) = window.set_size(LogicalSize::new(
         app_state.lock().unwrap().settings.get_width(),
@@ -51,7 +51,7 @@ pub fn changed_content_size(
 pub fn close_window(app_handle: tauri::AppHandle) {
     log::debug!("Closing window");
     let window = app_handle
-        .get_window(WINDOW_ID)
+        .get_window(WINDOW_ID_MAIN)
         .expect("Failed to get main window");
     if let Err(e) = window.hide() {
         log::error!("Failed to hide window: {}", e);

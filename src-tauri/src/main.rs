@@ -4,7 +4,7 @@
 mod ui;
 
 use crate::ui::MenuId;
-use crate::ui::WINDOW_ID;
+use crate::ui::WINDOW_ID_MAIN;
 use crate::ui::command::{
     changed_content_size, close_window, launch_application, search_application,
 };
@@ -75,7 +75,7 @@ fn run() -> KasuriResult<()> {
             let mut kasuri = Kasuri::with_settings(settings)?;
             kasuri.init(app.app_handle())?;
             create_system_tray_menu(app)?;
-            app.get_window(WINDOW_ID)
+            app.get_window(WINDOW_ID_MAIN)
                 .expect("Failed to get main window")
                 .set_size(LogicalSize::new(*(&kasuri.settings.get_width()), 100))?;
             app.manage(Mutex::new(kasuri));

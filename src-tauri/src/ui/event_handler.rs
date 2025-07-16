@@ -1,4 +1,4 @@
-use super::{EVENT_WINDOW_SHOW, MenuId, WINDOW_ID};
+use super::{EVENT_WINDOW_SHOW, MenuId, WINDOW_ID_MAIN, WINDOW_ID_SETTINGS};
 use global_hotkey::GlobalHotKeyEvent;
 use global_hotkey::HotKeyState;
 use kasuri::Kasuri;
@@ -7,7 +7,7 @@ use std::sync::Mutex;
 use tauri::menu::MenuEvent;
 use tauri::tray::TrayIcon;
 use tauri::tray::TrayIconEvent;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, WindowBuilder};
 use tauri_plugin_global_shortcut::Shortcut;
 use tauri_plugin_opener::OpenerExt;
 
@@ -25,7 +25,7 @@ pub fn on_global_shortcut(app: &AppHandle, shortcut: &Shortcut, event: GlobalHot
         return;
     }
     let window = app
-        .get_window(WINDOW_ID)
+        .get_window(WINDOW_ID_MAIN)
         .expect("Failed to get main window");
     if !window.is_visible().unwrap_or(true) {
         log::debug!("Window not visible, showing window");
@@ -76,7 +76,49 @@ pub fn on_menu_event(app: &AppHandle, event: MenuEvent) {
                         .open_path(log_dir.to_string_lossy(), None::<&str>)
                         .expect("Failed to open log directory");
                 }
-                MenuId::Settings => {}
+                MenuId::Settings => {
+                    if app
+                        .windows()
+                        .iter()
+                        .any(|(label, _)| label == WINDOW_ID_SETTINGS)
+                    {
+                        log::debug!("Settings window already exists, showing it");
+                        if let Some(window) = app.get_window(WINDOW_ID_SETTINGS) {
+                            if let Err(e) = window.show() {
+                                log::error!("Failed to show settings window: {}", e);
+                            }
+                            if let Err(e) = window.set_focus() {
+                                log::error!("Failed to focus settings window: {}", e);
+                            }
+                            return;
+                        } else {
+                            log::error!("Settings window should exist... but it was not found.");
+                            unreachable!("Settings window should exist...");
+                        }
+                    }
+
+                    let window_config = app
+                        .config()
+                        .app
+                        .windows
+                        .iter()
+                        .filter(|w| w.label == WINDOW_ID_SETTINGS)
+                        .next()
+                        .expect("Settings window not found");
+
+                    if let Ok(window_builder) = WindowBuilder::from_config(app, window_config) {
+                        if let Ok(window) = window_builder.build() {
+                            log::debug!("Settings window created successfully");
+                            if let Err(e) = window.show() {
+                                log::error!("Failed to show settings window: {}", e);
+                            }
+                        } else {
+                            log::error!("Failed to build settings window");
+                        }
+                    } else {
+                        log::error!("Failed to create settings window");
+                    }
+                }
             }
         }
     }
@@ -94,7 +136,7 @@ pub fn on_tray_icon_event(tray_icon: &TrayIcon, event: TrayIconEvent) {
             button: _,
         } => {
             log::debug!("Tray icon double-clicked");
-            if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID) {
+            if let Some(window) = tray_icon.app_handle().get_window(WINDOW_ID_MAIN) {
                 if !window.is_visible().unwrap_or(true) {
                     log::debug!("Showing window on tray icon double-click");
                     if let Err(e) = window.show() {
