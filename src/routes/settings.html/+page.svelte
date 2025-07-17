@@ -1,38 +1,4 @@
 <script lang="ts">
-    // Tauriウィンドウ操作APIのimport（Tauri環境のみ有効）
-    let tauriWindow: any = undefined;
-    if (typeof window !== "undefined" && "__TAURI__" in window) {
-        // @ts-ignore
-        tauriWindow = window.__TAURI__?.window?.getCurrent
-            ? window.__TAURI__.window.getCurrent()
-            : undefined;
-    }
-
-    async function minimizeWindow() {
-        if (tauriWindow && tauriWindow.minimize) {
-            await tauriWindow.minimize();
-        }
-    }
-    async function maximizeWindow() {
-        if (
-            tauriWindow &&
-            tauriWindow.isMaximized &&
-            tauriWindow.maximize &&
-            tauriWindow.unmaximize
-        ) {
-            const isMax = await tauriWindow.isMaximized();
-            if (isMax) {
-                await tauriWindow.unmaximize();
-            } else {
-                await tauriWindow.maximize();
-            }
-        }
-    }
-    async function closeWindow() {
-        if (tauriWindow && tauriWindow.close) {
-            await tauriWindow.close();
-        }
-    }
     import { onMount } from "svelte";
 
     let application_search_path_list: string[] = [];
@@ -47,40 +13,34 @@
         // TODO: Load settings from backend
     });
 
-    function saveSettings() {
-        // TODO: Save settings to backend
+    async function minimizeWindow() {
+        throw new Error("Minimize function not implemented");
     }
-
-    // Fallback for folder selection (Electron/Tauri/legacy browsers)
-    async function selectFolderFallback(): Promise<string | undefined> {
-        // @ts-ignore
-        if (window.__TAURI__ && window.__TAURI__.dialog) {
-            // Tauri dialog
-            const { open } = window.__TAURI__.dialog;
-            return await open({ directory: true });
-        }
-        // fallback: prompt
-        return prompt("Enter folder path:") || undefined;
+    async function maximizeWindow() {
+        throw new Error("Maximize function not implemented");
+    }
+    async function closeWindow() {
+        throw new Error("Close function not implemented");
     }
 </script>
 
-<main class="container w-screen h-full">
-    <!-- Custom Window Frame -->
+<main class="container w-screen h-screen p-0 flex flex-col">
     <div
-        class="w-screen flex items-center justify-between bg-gray-800 text-white px-2 py-1 select-none"
-        style="-webkit-app-region: drag; border-top-left-radius: 0.5rem; border-top-right-radius: 0.5rem;"
+        class="w-screen flex items-center justify-between px-2 py-1 select-none bg-(--color-bg-lightx2)"
+        data-tauri-drag-region
     >
-        <div class="font-bold text-lg pl-1" style="letter-spacing:0.05em;">
+        <div
+            class="font-bold text-lg pl-1 tracking-[0.12em]"
+            data-tauri-drag-region
+        >
             KASURI
         </div>
-        <div
-            class="flex items-center gap-1"
-            style="-webkit-app-region: no-drag;"
-        >
+        <div class="flex items-center gap-1">
             <button
                 type="button"
+                title="Minimize"
                 aria-label="Minimize"
-                class="w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded transition"
+                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-bg-lightx3) rounded transition"
                 on:click={minimizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
@@ -89,8 +49,9 @@
             </button>
             <button
                 type="button"
+                title="Maximize"
                 aria-label="Maximize"
-                class="w-8 h-8 flex items-center justify-center hover:bg-gray-700 rounded transition"
+                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-bg-lightx3) rounded transition"
                 on:click={maximizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
@@ -108,16 +69,17 @@
             </button>
             <button
                 type="button"
+                title="Close"
                 aria-label="Close"
-                class="w-8 h-8 flex items-center justify-center hover:bg-red-600 rounded transition"
+                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-accent-red) rounded transition"
                 on:click={closeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
                     ><rect
-                        x="3"
-                        y="3"
-                        width="10"
-                        height="10"
+                        x="2"
+                        y="2"
+                        width="12"
+                        height="12"
                         rx="2"
                         fill="none"
                         stroke="currentColor"
@@ -371,14 +333,7 @@
         overflow: hidden;
         height: 100%;
         width: 100%;
-    }
-
-    main.container {
-        height: 100vh;
-        width: 100vw;
-        display: flex;
-        flex-direction: column;
-        padding: 0;
+        color: var(--color-text);
     }
 
     /* 疑似ウィンドウフレームの下にスクロール領域 */

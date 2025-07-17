@@ -4,8 +4,10 @@
     --color-bg: oklch(0.23 0.021 264.02);
     --color-bg-light: oklch(0.26 0.021 264.02);
     --color-bg-lightx2: oklch(0.32 0.021 264.02);
+    --color-bg-lightx3: oklch(0.40 0.021 264.02);
     --color-text: oklch(0.7 0.0145 286.02);
     --color-line: oklch(0.43 0.0141 264.42);
+    --color-accent-red: oklch(0.60 0.18 29);
 
     --shadow-base: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
