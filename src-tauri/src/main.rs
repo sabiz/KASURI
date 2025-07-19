@@ -6,7 +6,7 @@ mod ui;
 use crate::ui::MenuId;
 use crate::ui::WINDOW_ID_MAIN;
 use crate::ui::command::{
-    changed_content_size, close_window, launch_application, search_application,
+    changed_content_size, close_window, get_settings, launch_application, search_application,
 };
 use crate::ui::event_handler::{on_global_shortcut, on_menu_event, on_tray_icon_event};
 use kasuri::Kasuri;
@@ -38,12 +38,14 @@ fn run() -> KasuriResult<()> {
     set_log_level_str(settings.get_log_level().as_str());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             search_application,
             changed_content_size,
             close_window,
-            launch_application
+            launch_application,
+            get_settings
         ])
         .setup(move |app| {
             log::debug!("Setup started");

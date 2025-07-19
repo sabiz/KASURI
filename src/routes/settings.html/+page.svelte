@@ -1,7 +1,26 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import Icon from "@iconify/svelte";
+    import { Window } from "@tauri-apps/api/window";
+    import { open } from "@tauri-apps/plugin-dialog";
+    import type { Settings } from "../../core/settings";
+    import { LogLevel } from "../../core/settings";
+    import { Backend } from "../../core/backend";
 
-    let application_search_path_list: string[] = [];
+    const THIS_WINDOW_LABEL = "settings";
+    const WINDOWS_STORE_APP_ALIAS = "WindowsStoreApp";
+
+    const backend = new Backend();
+    let temporarySettings: Settings = {
+        applicationSearchPathList: ["C:\\", WINDOWS_STORE_APP_ALIAS],
+        applicationSearchIntervalOnStartup: 0,
+        logLevel: LogLevel.Info,
+        width: 0,
+        autoStartup: false,
+        shortcutKey: "",
+        applicationNameAliases: [],
+    };
+
     let application_search_interval_on_startup_minute: number = 0;
     let log_level: string = "";
     let width: number = 0;
@@ -10,17 +29,77 @@
     let application_name_aliases: { path: string; alias: string }[] = [];
 
     onMount(async () => {
-        // TODO: Load settings from backend
+        const settings = await backend.getSettings();
+        temporarySettings = settings;
     });
 
+    /**
+     * Minimizes the current window.
+     */
     async function minimizeWindow() {
-        throw new Error("Minimize function not implemented");
+        (await Window.getByLabel(THIS_WINDOW_LABEL))?.minimize();
     }
+    /**
+     * Maximizes the current window.
+     */
     async function maximizeWindow() {
-        throw new Error("Maximize function not implemented");
+        (await Window.getByLabel(THIS_WINDOW_LABEL))?.toggleMaximize();
     }
+    /**
+     * Closes the current window.
+     */
     async function closeWindow() {
-        throw new Error("Close function not implemented");
+        (await Window.getByLabel(THIS_WINDOW_LABEL))?.close();
+    }
+
+    /**
+     * Opens a folder selector dialog to select a directory.
+     * Updates the settings with the selected path.
+     * @param path The default path to show in the dialog.
+     * @param index The index of the search path to update in the settings.
+     */
+    async function openFolderSelector(path: string, index: number) {
+        const folder = await open({
+            directory: true,
+            multiple: false,
+            defaultPath: path,
+            title: "Select Application Search Path",
+        });
+        if (!folder) {
+            return;
+        }
+        if (typeof folder === "string") {
+            temporarySettings.applicationSearchPathList[index] = folder;
+        }
+    }
+
+    async function addFolder() {
+        const folder = await open({
+            directory: true,
+            multiple: false,
+            title: "Select Application Search Path",
+        });
+        if (!folder) {
+            return;
+        }
+        console.log("Selected folder:", folder);
+        if (typeof folder === "string") {
+            temporarySettings.applicationSearchPathList = [
+                ...temporarySettings.applicationSearchPathList,
+                folder,
+            ];
+        }
+    }
+
+    /**
+     * Removes a search path from the settings.
+     * @param i The index of the search path to remove.
+     */
+    function removeSearchPath(i: number) {
+        temporarySettings.applicationSearchPathList =
+            temporarySettings.applicationSearchPathList.filter(
+                (_, index) => index !== i,
+            );
     }
 </script>
 
@@ -33,14 +112,14 @@
             class="font-bold text-lg pl-1 tracking-[0.12em]"
             data-tauri-drag-region
         >
-            KASURI
+            KASURI | Settings
         </div>
         <div class="flex items-center gap-1">
             <button
                 type="button"
                 title="Minimize"
                 aria-label="Minimize"
-                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-bg-lightx3) rounded transition"
+                class="btn-window hover:bg-(--color-bg-lightx3)"
                 on:click={minimizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
@@ -51,7 +130,7 @@
                 type="button"
                 title="Maximize"
                 aria-label="Maximize"
-                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-bg-lightx3) rounded transition"
+                class="btn-window hover:bg-(--color-bg-lightx3)"
                 on:click={maximizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
@@ -71,7 +150,7 @@
                 type="button"
                 title="Close"
                 aria-label="Close"
-                class="w-8 h-8 flex items-center justify-center hover:bg-(--color-accent-red) rounded transition"
+                class="btn-window hover:bg-(--color-accent-red)"
                 on:click={closeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
@@ -103,225 +182,204 @@
             </button>
         </div>
     </div>
-    <div class="kasuri-content-scroll">
-        <h1 class="text-3xl mb-6">Settings</h1>
-        <form class="space-y-6" on:submit|preventDefault={saveSettings}>
-            <!-- Application Search Path List -->
-            <div>
-                <label
-                    class="block font-bold mb-1"
-                    for="application_search_path_list_0"
-                    >Application Search Path List</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    List of directories to search for applications. Enter
-                    "WindowsStoreApp" to include Windows Store apps.
-                </p>
-                {#each application_search_path_list as path, i}
-                    <div class="flex items-center mb-1">
-                        <input
-                            class="input input-bordered flex-1"
-                            id={`application_search_path_list_${i}`}
-                            type="text"
-                            bind:value={application_search_path_list[i]}
-                            placeholder="Enter folder path or WindowsStoreApp"
+    <div
+        class="kasuri-content-scroll grow shrink basis-0 overflow-y-auto pt-[2rem] pb-[2rem] w-screen space-y-6 px-[3rem]"
+    >
+        <div>
+            <span class="block font-bold mb-1 text-lg border-b-1"
+                >Application Search Path</span
+            >
+            <p class="text-xs mb-1">
+                List of directories to search for applications. Enter
+                "WindowsStoreApp" to include Windows Store apps.
+            </p>
+            {#each temporarySettings.applicationSearchPathList as path, i}
+                <div class="flex items-center mb-1 pt-1 pb-1">
+                    <button
+                        class="btn-ctl mr-2"
+                        aria-label="Select Folder"
+                        title="Select Folder"
+                        disabled={temporarySettings.applicationSearchPathList[
+                            i
+                        ] === WINDOWS_STORE_APP_ALIAS}
+                        on:click={() => openFolderSelector(path, i)}
+                    >
+                        <Icon
+                            icon="uiw:folder-open"
+                            width={24}
+                            height={24}
+                            class={temporarySettings.applicationSearchPathList[
+                                i
+                            ] === WINDOWS_STORE_APP_ALIAS
+                                ? "text-(--color-bg-lightx2)"
+                                : ""}
                         />
-                        {#if application_search_path_list[i] !== "WindowsStoreApp"}
-                            <button
-                                type="button"
-                                class="ml-2 btn btn-sm btn-secondary"
-                                on:click={async () => {
-                                    // Try Tauri/Electron fallback first
-                                    let selectedPath =
-                                        await selectFolderFallback();
-                                    if (
-                                        !selectedPath &&
-                                        typeof window !== "undefined" &&
-                                        "showDirectoryPicker" in window
-                                    ) {
-                                        // @ts-ignore
-                                        const dirHandle =
-                                            await window.showDirectoryPicker();
-                                        // Try to get full path (Tauri injects .path, web only has .name)
-                                        if (dirHandle && "path" in dirHandle) {
-                                            // @ts-ignore
-                                            application_search_path_list[i] =
-                                                dirHandle.path;
-                                        } else if (
-                                            dirHandle &&
-                                            "name" in dirHandle
-                                        ) {
-                                            // Web fallback: only name available
-                                            // (You may want to show a warning in production)
-                                            // @ts-ignore
-                                            application_search_path_list[i] =
-                                                dirHandle.name;
-                                        }
-                                    } else if (selectedPath) {
-                                        application_search_path_list[i] =
-                                            selectedPath;
-                                    }
-                                }}>Select Folder</button
-                            >
-                        {/if}
-                        <button
-                            type="button"
-                            class="ml-2 btn btn-sm btn-error"
-                            on:click={() =>
-                                application_search_path_list.splice(i, 1)}
-                            >Remove</button
-                        >
-                    </div>
-                {/each}
+                    </button>
+                    <input class="flex-1" type="text" readonly value={path} />
+                    <button
+                        class="btn-ctl mx-2"
+                        on:click={() => removeSearchPath(i)}
+                    >
+                        <Icon icon="uiw:delete" width={24} height={24} />
+                    </button>
+                </div>
+            {/each}
+            <div class="mt-3">
                 <button
-                    type="button"
-                    class="btn btn-sm btn-primary mt-1"
-                    on:click={() =>
-                        (application_search_path_list = [
-                            ...application_search_path_list,
-                            "",
-                        ])}>Add Path</button
+                    class="btn-ctl"
+                    aria-label="Add Folder"
+                    title="Add Folder"
+                    on:click={addFolder}
                 >
+                    <Icon icon="uiw:folder-add" width={24} height={24} />
+                </button>
+                {#if !temporarySettings.applicationSearchPathList.includes(WINDOWS_STORE_APP_ALIAS)}
+                    <button
+                        class="btn-ctl"
+                        aria-label="Add WindowsStoreApp"
+                        title="Add WindowsStoreApp"
+                        on:click={() =>
+                            (temporarySettings.applicationSearchPathList = [
+                                ...temporarySettings.applicationSearchPathList,
+                                WINDOWS_STORE_APP_ALIAS,
+                            ])}
+                    >
+                        <Icon icon="uiw:appstore" width={24} height={24} />
+                    </button>
+                {/if}
             </div>
+        </div>
 
-            <!-- Application Search Interval On Startup (minutes) -->
-            <div>
-                <label
-                    class="block font-bold mb-1"
-                    for="application_search_interval_on_startup_minute"
-                    >Application Search Interval On Startup (minutes)</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    Interval in minutes to search for applications at startup.
-                </p>
-                <input
-                    class="input input-bordered"
-                    id="application_search_interval_on_startup_minute"
-                    type="number"
-                    min="0"
-                    bind:value={application_search_interval_on_startup_minute}
-                />
-            </div>
+        <!-- Application Search Interval On Startup (minutes) -->
+        <div>
+            <label
+                class="block font-bold mb-1"
+                for="application_search_interval_on_startup_minute"
+                >Application Search Interval On Startup (minutes)</label
+            >
+            <p class="text-xs text-gray-500 mb-1">
+                Interval in minutes to search for applications at startup.
+            </p>
+            <input
+                class="input input-bordered"
+                id="application_search_interval_on_startup_minute"
+                type="number"
+                min="0"
+                bind:value={application_search_interval_on_startup_minute}
+            />
+        </div>
 
-            <!-- Log Level -->
-            <div>
-                <label class="block font-bold mb-1" for="log_level"
-                    >Log Level</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    Specifies the log output level (error, warn, info, debug).
-                </p>
-                <select
-                    class="input input-bordered"
-                    id="log_level"
-                    bind:value={log_level}
-                >
-                    <option value="error">error</option>
-                    <option value="warn">warn</option>
-                    <option value="info">info</option>
-                    <option value="debug">debug</option>
-                </select>
-            </div>
+        <!-- Log Level -->
+        <div>
+            <label class="block font-bold mb-1" for="log_level">Log Level</label
+            >
+            <p class="text-xs text-gray-500 mb-1">
+                Specifies the log output level (error, warn, info, debug).
+            </p>
+            <select
+                class="input input-bordered"
+                id="log_level"
+                bind:value={log_level}
+            >
+                <option value="error">error</option>
+                <option value="warn">warn</option>
+                <option value="info">info</option>
+                <option value="debug">debug</option>
+            </select>
+        </div>
 
-            <!-- Window Width -->
-            <div>
-                <label class="block font-bold mb-1" for="width"
-                    >Window Width</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    Width of the main application window (in pixels).
-                </p>
-                <input
-                    class="input input-bordered"
-                    id="width"
-                    type="number"
-                    min="0"
-                    bind:value={width}
-                />
-            </div>
+        <!-- Window Width -->
+        <div>
+            <label class="block font-bold mb-1" for="width">Window Width</label>
+            <p class="text-xs text-gray-500 mb-1">
+                Width of the main application window (in pixels).
+            </p>
+            <input
+                class="input input-bordered"
+                id="width"
+                type="number"
+                min="0"
+                bind:value={width}
+            />
+        </div>
 
-            <!-- Auto Startup -->
-            <div class="flex items-center">
-                <input
-                    id="auto_startup"
-                    type="checkbox"
-                    bind:checked={auto_startup}
-                    class="mr-2"
-                />
-                <label for="auto_startup" class="font-bold">Auto Startup</label>
-                <span class="text-xs text-gray-500 ml-2"
-                    >Automatically start the application when the system boots.</span
-                >
-            </div>
+        <!-- Auto Startup -->
+        <div class="flex items-center">
+            <input
+                id="auto_startup"
+                type="checkbox"
+                bind:checked={auto_startup}
+                class="mr-2"
+            />
+            <label for="auto_startup" class="font-bold">Auto Startup</label>
+            <span class="text-xs text-gray-500 ml-2"
+                >Automatically start the application when the system boots.</span
+            >
+        </div>
 
-            <!-- Shortcut Key -->
-            <div>
-                <label class="block font-bold mb-1" for="shortcut_key"
-                    >Shortcut Key</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    Global shortcut key to toggle the application visibility.
-                </p>
-                <input
-                    class="input input-bordered"
-                    id="shortcut_key"
-                    type="text"
-                    bind:value={shortcut_key}
-                />
-            </div>
+        <!-- Shortcut Key -->
+        <div>
+            <label class="block font-bold mb-1" for="shortcut_key"
+                >Shortcut Key</label
+            >
+            <p class="text-xs text-gray-500 mb-1">
+                Global shortcut key to toggle the application visibility.
+            </p>
+            <input
+                class="input input-bordered"
+                id="shortcut_key"
+                type="text"
+                bind:value={shortcut_key}
+            />
+        </div>
 
-            <!-- Application Name Aliases -->
-            <div>
-                <label
-                    class="block font-bold mb-1"
-                    for="application_name_aliases_0"
-                    >Application Name Aliases</label
-                >
-                <p class="text-xs text-gray-500 mb-1">
-                    List of application paths and their aliases.
-                </p>
-                {#each application_name_aliases as alias, i}
-                    <div class="flex items-center mb-1">
-                        <input
-                            class="input input-bordered mr-2"
-                            id={`application_name_aliases_path_${i}`}
-                            type="text"
-                            placeholder="Path"
-                            bind:value={application_name_aliases[i].path}
-                        />
-                        <input
-                            class="input input-bordered mr-2"
-                            id={`application_name_aliases_alias_${i}`}
-                            type="text"
-                            placeholder="Alias"
-                            bind:value={application_name_aliases[i].alias}
-                        />
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-error"
-                            on:click={() =>
-                                application_name_aliases.splice(i, 1)}
-                            >Remove</button
-                        >
-                    </div>
-                {/each}
-                <button
-                    type="button"
-                    class="btn btn-sm btn-primary mt-1"
-                    on:click={() =>
-                        (application_name_aliases = [
-                            ...application_name_aliases,
-                            { path: "", alias: "" },
-                        ])}>Add Alias</button
-                >
-            </div>
+        <!-- Application Name Aliases -->
+        <div>
+            <label class="block font-bold mb-1" for="application_name_aliases_0"
+                >Application Name Aliases</label
+            >
+            <p class="text-xs text-gray-500 mb-1">
+                List of application paths and their aliases.
+            </p>
+            {#each application_name_aliases as alias, i}
+                <div class="flex items-center mb-1">
+                    <input
+                        class="input input-bordered mr-2"
+                        id={`application_name_aliases_path_${i}`}
+                        type="text"
+                        placeholder="Path"
+                        bind:value={application_name_aliases[i].path}
+                    />
+                    <input
+                        class="input input-bordered mr-2"
+                        id={`application_name_aliases_alias_${i}`}
+                        type="text"
+                        placeholder="Alias"
+                        bind:value={application_name_aliases[i].alias}
+                    />
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-error"
+                        on:click={() => application_name_aliases.splice(i, 1)}
+                        >🗑️</button
+                    >
+                    >
+                </div>
+            {/each}
+            <button
+                type="button"
+                class="btn btn-sm btn-primary mt-1"
+                on:click={() =>
+                    (application_name_aliases = [
+                        ...application_name_aliases,
+                        { path: "", alias: "" },
+                    ])}>Add Alias</button
+            >
+        </div>
 
-            <div>
-                <button type="submit" class="btn btn-success"
-                    >Save Settings</button
-                >
-            </div>
-        </form>
+        <div>
+            <button type="submit" class="btn btn-success">Save Settings</button>
+        </div>
     </div>
 </main>
 
@@ -336,24 +394,25 @@
         color: var(--color-text);
     }
 
-    /* 疑似ウィンドウフレームの下にスクロール領域 */
-    .kasuri-content-scroll {
-        flex: 1 1 0%;
-        overflow-y: auto;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        padding-left: 0;
-        padding-right: 0;
-        width: 100vw;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    button {
+        transition: background-color 0.2s ease-in-out;
     }
 
-    .kasuri-content-scroll form {
-        max-width: 640px;
-        width: 100%;
-        margin: 0 auto;
+    input[type="text"] {
+        @apply px-2 rounded bg-(--color-bg-light) h-8;
+    }
+
+    .btn-window {
+        @apply w-8 h-8 flex items-center justify-center rounded;
+    }
+
+    .btn-ctl {
+        @apply bg-(--color-bg-light) p-[0.125rem] rounded cursor-pointer text-lg;
+    }
+    .btn-ctl:hover:not(:disabled) {
+        @apply bg-(--color-bg-lightx3);
+    }
+    .btn-ctl:disabled {
+        @apply cursor-not-allowed;
     }
 </style>

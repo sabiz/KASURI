@@ -1,5 +1,6 @@
 use super::WINDOW_ID_MAIN;
 use kasuri::Kasuri;
+use kasuri::core::settings::Settings;
 use kasuri::model::AppForView;
 use std::sync::Mutex;
 use tauri::{LogicalSize, Manager};
@@ -98,4 +99,22 @@ pub fn search_application(
 pub fn launch_application(app_id: String, app_state: tauri::State<'_, Mutex<Kasuri>>) {
     log::debug!("Launching application with ID: {}", app_id);
     let _ = app_state.lock().unwrap().handle_launch_application(&app_id);
+}
+
+/// Tauri command to retrieve the current settings of the application.
+///
+/// This function is exposed to the frontend and allows the UI to access
+/// the current settings of the Kasuri application.
+///
+/// # Arguments
+///
+/// * `app_state` - Tauri state containing the Kasuri instance
+///
+/// # Returns
+///
+/// None
+#[tauri::command]
+pub fn get_settings(app_state: tauri::State<'_, Mutex<Kasuri>>) -> Settings {
+    log::debug!("Retrieving settings");
+    app_state.lock().unwrap().settings.clone()
 }

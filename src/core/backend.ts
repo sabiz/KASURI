@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { Settings } from "../core/settings";
 
 const INVOKE_SEARCH_APPLICATION = "search_application";
 const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
 const INVOKE_CLOSE_WINDOW = "close_window";
 const INVOKE_LAUNCH_APPLICATION = "launch_application";
+const INVOKE_GET_SETTINGS = "get_settings";
 
 /**
  * Represents an application that can be searched and launched.
@@ -88,5 +90,47 @@ export class Backend {
         await invoke(INVOKE_LAUNCH_APPLICATION, {
             appId: application.app_id,
         });
+    }
+
+    /**
+     * Retrieves the settings from the backend.
+     * @returns A promise that resolves to the settings object.
+     */
+    public async getSettings(): Promise<Settings> {
+        const result = await invoke(INVOKE_GET_SETTINGS);
+        if (typeof result !== "object" || result === null) {
+            throw new Error("Invalid settings format received from backend");
+        }
+        return this.transform<Settings>(result);
+    }
+
+
+    /**
+     * Transforms an object by converting its keys from snake_case to camelCase.
+     * @param obj The object to be transformed.
+     * @returns The transformed object with camelCase keys.
+     */
+    private transform<T>(obj: any): T {
+        const result: any = {};
+        for (const key in obj) {
+            if (!obj.hasOwnProperty(key)) {
+                continue;
+            }
+            const value = obj[key];
+            const camelCaseKey = key.replace(/_([a-z])/g, (match, letter) => letter.toUpperCase());
+            if (Array.isArray(value)) {
+                result[camelCaseKey] = value.map((item: any) => {
+                    if (typeof item === "object" && item !== null) {
+                        return this.transform(item);
+                    }
+                    return item;
+                });
+            } else if (typeof value === "object" && value !== null) {
+                result[camelCaseKey] = this.transform(value);
+            } else {
+                result[camelCaseKey] = value;
+            }
+        }
+        return result as T;
     }
 }
