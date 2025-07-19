@@ -3,7 +3,7 @@
  */
 export type Settings = {
     applicationSearchPathList: string[];
-    applicationSearchIntervalOnStartup: number;
+    applicationSearchIntervalOnStartupMinute: number;
     logLevel: LogLevel;
     width: number;
     autoStartup: boolean;

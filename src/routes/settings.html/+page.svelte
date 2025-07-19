@@ -11,26 +11,28 @@
     const WINDOWS_STORE_APP_ALIAS = "WindowsStoreApp";
 
     const backend = new Backend();
-    let temporarySettings: Settings = {
-        applicationSearchPathList: ["C:\\", WINDOWS_STORE_APP_ALIAS],
-        applicationSearchIntervalOnStartup: 0,
+    let temporarySettings: Settings = $state({
+        applicationSearchPathList: [],
+        applicationSearchIntervalOnStartupMinute: 0,
         logLevel: LogLevel.Info,
         width: 0,
         autoStartup: false,
         shortcutKey: "",
         applicationNameAliases: [],
-    };
+    });
 
-    let application_search_interval_on_startup_minute: number = 0;
-    let log_level: string = "";
-    let width: number = 0;
+    let applicationSearchIntervalOnStartupMinute = $derived(
+        temporarySettings.applicationSearchIntervalOnStartupMinute / 60,
+    );
+
     let auto_startup: boolean = false;
     let shortcut_key: string = "";
     let application_name_aliases: { path: string; alias: string }[] = [];
 
     onMount(async () => {
         const settings = await backend.getSettings();
-        temporarySettings = settings;
+        temporarySettings = { ...settings };
+        console.log("Settings loaded:", $state.snapshot(temporarySettings));
     });
 
     /**
@@ -58,7 +60,10 @@
      * @param path The default path to show in the dialog.
      * @param index The index of the search path to update in the settings.
      */
-    async function openFolderSelector(path: string, index: number) {
+    async function openFolderSelector(
+        path: string = "",
+        index: number | null = null,
+    ) {
         const folder = await open({
             directory: true,
             multiple: false,
@@ -68,26 +73,13 @@
         if (!folder) {
             return;
         }
-        if (typeof folder === "string") {
-            temporarySettings.applicationSearchPathList[index] = folder;
-        }
-    }
-
-    async function addFolder() {
-        const folder = await open({
-            directory: true,
-            multiple: false,
-            title: "Select Application Search Path",
-        });
-        if (!folder) {
-            return;
-        }
-        console.log("Selected folder:", folder);
-        if (typeof folder === "string") {
+        if (!index) {
             temporarySettings.applicationSearchPathList = [
                 ...temporarySettings.applicationSearchPathList,
                 folder,
             ];
+        } else {
+            temporarySettings.applicationSearchPathList[index] = folder;
         }
     }
 
@@ -120,7 +112,7 @@
                 title="Minimize"
                 aria-label="Minimize"
                 class="btn-window hover:bg-(--color-bg-lightx3)"
-                on:click={minimizeWindow}
+                onclick={minimizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
                     ><rect y="12" width="16" height="2" rx="1" /></svg
@@ -131,7 +123,7 @@
                 title="Maximize"
                 aria-label="Maximize"
                 class="btn-window hover:bg-(--color-bg-lightx3)"
-                on:click={maximizeWindow}
+                onclick={maximizeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
                     ><rect
@@ -151,7 +143,7 @@
                 title="Close"
                 aria-label="Close"
                 class="btn-window hover:bg-(--color-accent-red)"
-                on:click={closeWindow}
+                onclick={closeWindow}
             >
                 <svg width="16" height="16" fill="currentColor"
                     ><rect
@@ -202,7 +194,7 @@
                         disabled={temporarySettings.applicationSearchPathList[
                             i
                         ] === WINDOWS_STORE_APP_ALIAS}
-                        on:click={() => openFolderSelector(path, i)}
+                        onclick={() => openFolderSelector(path, i)}
                     >
                         <Icon
                             icon="uiw:folder-open"
@@ -218,7 +210,7 @@
                     <input class="flex-1" type="text" readonly value={path} />
                     <button
                         class="btn-ctl mx-2"
-                        on:click={() => removeSearchPath(i)}
+                        onclick={() => removeSearchPath(i)}
                     >
                         <Icon icon="uiw:delete" width={24} height={24} />
                     </button>
@@ -229,16 +221,16 @@
                     class="btn-ctl"
                     aria-label="Add Folder"
                     title="Add Folder"
-                    on:click={addFolder}
+                    onclick={() => openFolderSelector()}
                 >
                     <Icon icon="uiw:folder-add" width={24} height={24} />
                 </button>
                 {#if !temporarySettings.applicationSearchPathList.includes(WINDOWS_STORE_APP_ALIAS)}
                     <button
-                        class="btn-ctl"
+                        class="btn-ctl ml-3"
                         aria-label="Add WindowsStoreApp"
                         title="Add WindowsStoreApp"
-                        on:click={() =>
+                        onclick={() =>
                             (temporarySettings.applicationSearchPathList = [
                                 ...temporarySettings.applicationSearchPathList,
                                 WINDOWS_STORE_APP_ALIAS,
@@ -250,37 +242,36 @@
             </div>
         </div>
 
-        <!-- Application Search Interval On Startup (minutes) -->
         <div>
-            <label
-                class="block font-bold mb-1"
-                for="application_search_interval_on_startup_minute"
-                >Application Search Interval On Startup (minutes)</label
+            <span class="block font-bold mb-1 text-lg border-b-1"
+                >Application Search Interval On Startup (hour)</span
             >
-            <p class="text-xs text-gray-500 mb-1">
-                Interval in minutes to search for applications at startup.
+            <p class="text-xs mb-1">
+                If the elapsed time since the last application startup is less
+                than the specified hour, automatic application search will be
+                skipped. Set to 0 to always search at startup.<br />
             </p>
             <input
-                class="input input-bordered"
-                id="application_search_interval_on_startup_minute"
+                class="mt-1 mr-2"
                 type="number"
                 min="0"
-                bind:value={application_search_interval_on_startup_minute}
+                max="8760"
+                bind:value={applicationSearchIntervalOnStartupMinute}
+                onchange={() =>
+                    (temporarySettings.applicationSearchIntervalOnStartupMinute =
+                        applicationSearchIntervalOnStartupMinute * 60)}
             />
+            <span class="text">hours</span>
         </div>
 
-        <!-- Log Level -->
         <div>
-            <label class="block font-bold mb-1" for="log_level">Log Level</label
+            <span class="block font-bold mb-1 text-lg border-b-1"
+                >Log Level</span
             >
-            <p class="text-xs text-gray-500 mb-1">
+            <p class="text-xs mb-1">
                 Specifies the log output level (error, warn, info, debug).
             </p>
-            <select
-                class="input input-bordered"
-                id="log_level"
-                bind:value={log_level}
-            >
+            <select class="mt-1" bind:value={temporarySettings.logLevel}>
                 <option value="error">error</option>
                 <option value="warn">warn</option>
                 <option value="info">info</option>
@@ -288,18 +279,18 @@
             </select>
         </div>
 
-        <!-- Window Width -->
         <div>
-            <label class="block font-bold mb-1" for="width">Window Width</label>
-            <p class="text-xs text-gray-500 mb-1">
+            <span class="block font-bold mb-1 text-lg border-b-1"
+                >Window Width</span
+            >
+            <p class="text-xs mb-1">
                 Width of the main application window (in pixels).
             </p>
             <input
-                class="input input-bordered"
-                id="width"
+                class="mt-1 mr-2"
                 type="number"
-                min="0"
-                bind:value={width}
+                min="100"
+                bind:value={temporarySettings.width}
             />
         </div>
 
@@ -360,7 +351,7 @@
                     <button
                         type="button"
                         class="btn btn-sm btn-error"
-                        on:click={() => application_name_aliases.splice(i, 1)}
+                        onclick={() => application_name_aliases.splice(i, 1)}
                         >🗑️</button
                     >
                     >
@@ -369,7 +360,7 @@
             <button
                 type="button"
                 class="btn btn-sm btn-primary mt-1"
-                on:click={() =>
+                onclick={() =>
                     (application_name_aliases = [
                         ...application_name_aliases,
                         { path: "", alias: "" },
@@ -398,7 +389,9 @@
         transition: background-color 0.2s ease-in-out;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="number"],
+    select {
         @apply px-2 rounded bg-(--color-bg-light) h-8;
     }
 
