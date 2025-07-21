@@ -24,8 +24,9 @@
     let applicationSearchIntervalOnStartupMinute = $derived(
         temporarySettings.applicationSearchIntervalOnStartupMinute / 60,
     );
-
-    let auto_startup: boolean = false;
+    let auto_startup: string = $derived(
+        temporarySettings.autoStartup ? "on" : "off",
+    );
     let shortcut_key: string = "";
     let application_name_aliases: { path: string; alias: string }[] = [];
 
@@ -283,29 +284,26 @@
             <span class="block font-bold mb-1 text-lg border-b-1"
                 >Window Width</span
             >
-            <p class="text-xs mb-1">
-                Width of the main application window (in pixels).
-            </p>
+            <p class="text-xs mb-1">Width of the main application window.</p>
             <input
                 class="mt-1 mr-2"
                 type="number"
                 min="100"
                 bind:value={temporarySettings.width}
             />
+            <span class="text">pixels</span>
         </div>
-
-        <!-- Auto Startup -->
-        <div class="flex items-center">
-            <input
-                id="auto_startup"
-                type="checkbox"
-                bind:checked={auto_startup}
-                class="mr-2"
-            />
-            <label for="auto_startup" class="font-bold">Auto Startup</label>
-            <span class="text-xs text-gray-500 ml-2"
-                >Automatically start the application when the system boots.</span
+        <div>
+            <span class="block font-bold mb-1 text-lg border-b-1"
+                >Auto Startup</span
             >
+            <p class="text-xs mb-1">
+                Automatically start the application when the system boots.
+            </p>
+            <select class="mt-1" bind:value={auto_startup}>
+                <option value="off">off</option>
+                <option value="on">on</option>
+            </select>
         </div>
 
         <!-- Shortcut Key -->
