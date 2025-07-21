@@ -20,6 +20,8 @@
         shortcutKey: "",
         applicationNameAliases: [],
     });
+    let isRecordingShortcut = $state(false);
+    let beforeRecordingShortcut: string = "";
 
     let applicationSearchIntervalOnStartupMinute = $derived(
         temporarySettings.applicationSearchIntervalOnStartupMinute / 60,
@@ -27,7 +29,7 @@
     let auto_startup: string = $derived(
         temporarySettings.autoStartup ? "on" : "off",
     );
-    let shortcut_key: string = "";
+    let elementShortcut: HTMLInputElement | null = null;
     let application_name_aliases: { path: string; alias: string }[] = [];
 
     onMount(async () => {
@@ -93,6 +95,73 @@
             temporarySettings.applicationSearchPathList.filter(
                 (_, index) => index !== i,
             );
+    }
+
+    /**
+     * Toggles the state of shortcut key recording.
+     * If currently recording, it stops and removes the event listener.
+     * If not recording, it adds the event listener and focuses the input.
+     */
+    function toggleShortcutRecordingState() {
+        if (isRecordingShortcut) {
+            elementShortcut?.removeEventListener(
+                "keydown",
+                handleShortcutKeydown,
+                true,
+            );
+            isRecordingShortcut = false;
+            elementShortcut?.blur();
+            return;
+        } else {
+            beforeRecordingShortcut = temporarySettings.shortcutKey;
+            elementShortcut?.focus();
+            elementShortcut?.addEventListener(
+                "keydown",
+                handleShortcutKeydown,
+                true,
+            );
+            isRecordingShortcut = true;
+        }
+    }
+
+    /**
+     * Handles the keydown event for recording a shortcut key.
+     * It prevents the default action, constructs the shortcut key string,
+     * and updates the temporary settings with the new shortcut key.
+     * If Esc is pressed, it cancels the recording and restores the previous shortcut.
+     * @param event The keyboard event.
+     */
+    function handleShortcutKeydown(event: KeyboardEvent) {
+        event.preventDefault();
+        if (event.key === "Escape") {
+            // If Esc is pressed, cancel the recording and restore the previous shortcut
+            temporarySettings.shortcutKey = beforeRecordingShortcut;
+            if (isRecordingShortcut) {
+                toggleShortcutRecordingState();
+            }
+            return;
+        }
+        const keys = [];
+        if (event.ctrlKey) {
+            keys.push("Ctrl");
+        }
+        if (event.altKey) {
+            keys.push("Alt");
+        }
+        if (event.shiftKey) {
+            keys.push("Shift");
+        }
+        if (event.metaKey) {
+            keys.push("Meta");
+        }
+        if (event.key === " ") {
+            keys.push("Space");
+        }
+        const key = event.key;
+        if (!["Control", "Shift", "Alt", "Meta", " "].includes(key)) {
+            keys.push(key.length === 1 ? key.toUpperCase() : key);
+        }
+        temporarySettings.shortcutKey = keys.join("+");
     }
 </script>
 
@@ -244,10 +313,10 @@
         </div>
 
         <div>
-            <span class="block font-bold mb-1 text-lg border-b-1"
+            <span class="setting-title"
                 >Application Search Interval On Startup (hour)</span
             >
-            <p class="text-xs mb-1">
+            <p class="setting-explanation">
                 If the elapsed time since the last application startup is less
                 than the specified hour, automatic application search will be
                 skipped. Set to 0 to always search at startup.<br />
@@ -266,10 +335,8 @@
         </div>
 
         <div>
-            <span class="block font-bold mb-1 text-lg border-b-1"
-                >Log Level</span
-            >
-            <p class="text-xs mb-1">
+            <span class="setting-title">Log Level</span>
+            <p class="setting-explanation">
                 Specifies the log output level (error, warn, info, debug).
             </p>
             <select class="mt-1" bind:value={temporarySettings.logLevel}>
@@ -281,10 +348,10 @@
         </div>
 
         <div>
-            <span class="block font-bold mb-1 text-lg border-b-1"
-                >Window Width</span
-            >
-            <p class="text-xs mb-1">Width of the main application window.</p>
+            <span class="setting-title">Window Width</span>
+            <p class="setting-explanation">
+                Width of the main application window.
+            </p>
             <input
                 class="mt-1 mr-2"
                 type="number"
@@ -294,10 +361,8 @@
             <span class="text">pixels</span>
         </div>
         <div>
-            <span class="block font-bold mb-1 text-lg border-b-1"
-                >Auto Startup</span
-            >
-            <p class="text-xs mb-1">
+            <span class="setting-title">Auto Startup</span>
+            <p class="setting-explanation">
                 Automatically start the application when the system boots.
             </p>
             <select class="mt-1" bind:value={auto_startup}>
@@ -306,20 +371,33 @@
             </select>
         </div>
 
-        <!-- Shortcut Key -->
         <div>
-            <label class="block font-bold mb-1" for="shortcut_key"
-                >Shortcut Key</label
-            >
-            <p class="text-xs text-gray-500 mb-1">
-                Global shortcut key to toggle the application visibility.
+            <span class="setting-title">Shortcut Key</span>
+            <p class="setting-explanation">
+                Global shortcut key to toggle the application visibility.<br />
             </p>
             <input
-                class="input input-bordered"
-                id="shortcut_key"
+                class="w-40 text-center mr-2 {isRecordingShortcut
+                    ? 'outline-(--color-accent-blue) outline-solid outline-2'
+                    : ''}"
                 type="text"
-                bind:value={shortcut_key}
+                value={temporarySettings.shortcutKey}
+                readonly
+                placeholder="Not set"
+                bind:this={elementShortcut}
             />
+            <button
+                class="btn-ctl !px-2"
+                onclick={toggleShortcutRecordingState}
+            >
+                {isRecordingShortcut ? "Stop Recording" : "Start Recording"}
+            </button>
+            {#if isRecordingShortcut}
+                <div class="text-xs mt-1 text-(--color-accent-blue)">
+                    Press the desired key combination to set the shortcut. Press
+                    <strong>Esc</strong> to cancel.
+                </div>
+            {/if}
         </div>
 
         <!-- Application Name Aliases -->
@@ -391,6 +469,14 @@
     input[type="number"],
     select {
         @apply px-2 rounded bg-(--color-bg-light) h-8;
+    }
+
+    .setting-title {
+        @apply block font-bold mb-1 text-lg border-b-1;
+    }
+
+    .setting-explanation {
+        @apply text-xs mb-1;
     }
 
     .btn-window {
