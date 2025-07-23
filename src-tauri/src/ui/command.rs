@@ -1,5 +1,6 @@
-use super::WINDOW_ID;
+use super::WINDOW_ID_MAIN;
 use kasuri::Kasuri;
+use kasuri::core::settings::Settings;
 use kasuri::model::AppForView;
 use std::sync::Mutex;
 use tauri::{LogicalSize, Manager};
@@ -26,7 +27,7 @@ pub fn changed_content_size(
 ) {
     log::debug!("Content size changed: height={}", content_height);
     let window = app_handle
-        .get_window(WINDOW_ID)
+        .get_window(WINDOW_ID_MAIN)
         .expect("Failed to get main window");
     if let Err(e) = window.set_size(LogicalSize::new(
         app_state.lock().unwrap().settings.get_width(),
@@ -51,7 +52,7 @@ pub fn changed_content_size(
 pub fn close_window(app_handle: tauri::AppHandle) {
     log::debug!("Closing window");
     let window = app_handle
-        .get_window(WINDOW_ID)
+        .get_window(WINDOW_ID_MAIN)
         .expect("Failed to get main window");
     if let Err(e) = window.hide() {
         log::error!("Failed to hide window: {}", e);
@@ -98,4 +99,22 @@ pub fn search_application(
 pub fn launch_application(app_id: String, app_state: tauri::State<'_, Mutex<Kasuri>>) {
     log::debug!("Launching application with ID: {}", app_id);
     let _ = app_state.lock().unwrap().handle_launch_application(&app_id);
+}
+
+/// Tauri command to retrieve the current settings of the application.
+///
+/// This function is exposed to the frontend and allows the UI to access
+/// the current settings of the Kasuri application.
+///
+/// # Arguments
+///
+/// * `app_state` - Tauri state containing the Kasuri instance
+///
+/// # Returns
+///
+/// None
+#[tauri::command]
+pub fn get_settings(app_state: tauri::State<'_, Mutex<Kasuri>>) -> Settings {
+    log::debug!("Retrieving settings");
+    app_state.lock().unwrap().settings.clone()
 }
