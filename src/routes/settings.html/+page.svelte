@@ -30,7 +30,6 @@
         temporarySettings.autoStartup ? "on" : "off",
     );
     let elementShortcut: HTMLInputElement | null = null;
-    let application_name_aliases: { path: string; alias: string }[] = [];
 
     onMount(async () => {
         const settings = await backend.getSettings();
@@ -63,7 +62,7 @@
      * @param path The default path to show in the dialog.
      * @param index The index of the search path to update in the settings.
      */
-    async function openFolderSelector(
+    async function openSearchPathFolderSelector(
         path: string = "",
         index: number | null = null,
     ) {
@@ -163,6 +162,48 @@
         }
         temporarySettings.shortcutKey = keys.join("+");
     }
+
+    /**
+     * Opens a file selector dialog to select an alias target application path.
+     * Updates the settings with the selected path for the specified alias index.
+     * If index is null, it adds a new alias to the settings.
+     * @param path
+     * @param index
+     */
+    async function openAliasTargetSelector(
+        path: string = "",
+        index: number | null = null,
+    ) {
+        const targetPath = await open({
+            directory: false,
+            multiple: false,
+            defaultPath: path,
+            title: "Select Alias Target Application Path",
+        });
+        if (!targetPath) {
+            return;
+        }
+        if (index === null) {
+            temporarySettings.applicationNameAliases = [
+                ...temporarySettings.applicationNameAliases,
+                { path: targetPath, alias: "" },
+            ];
+        } else {
+            temporarySettings.applicationNameAliases[index].path = targetPath;
+        }
+    }
+
+    /**
+     * Removes an alias from the settings.
+     * It filters out the alias at the specified index.
+     * @param index
+     */
+    function removeAlias(index: number) {
+        temporarySettings.applicationNameAliases =
+            temporarySettings.applicationNameAliases.filter(
+                (_, i) => i !== index,
+            );
+    }
 </script>
 
 <main class="container w-screen h-screen p-0 flex flex-col">
@@ -261,18 +302,15 @@
                         class="btn-ctl mr-2"
                         aria-label="Select Folder"
                         title="Select Folder"
-                        disabled={temporarySettings.applicationSearchPathList[
-                            i
-                        ] === WINDOWS_STORE_APP_ALIAS}
-                        onclick={() => openFolderSelector(path, i)}
+                        disabled={path === WINDOWS_STORE_APP_ALIAS}
+                        onclick={async () =>
+                            await openSearchPathFolderSelector(path, i)}
                     >
                         <Icon
                             icon="uiw:folder-open"
                             width={24}
                             height={24}
-                            class={temporarySettings.applicationSearchPathList[
-                                i
-                            ] === WINDOWS_STORE_APP_ALIAS
+                            class={path === WINDOWS_STORE_APP_ALIAS
                                 ? "text-(--color-bg-lightx2)"
                                 : ""}
                         />
@@ -291,7 +329,7 @@
                     class="btn-ctl"
                     aria-label="Add Folder"
                     title="Add Folder"
-                    onclick={() => openFolderSelector()}
+                    onclick={() => openSearchPathFolderSelector()}
                 >
                     <Icon icon="uiw:folder-add" width={24} height={24} />
                 </button>
@@ -400,47 +438,85 @@
             {/if}
         </div>
 
-        <!-- Application Name Aliases -->
         <div>
-            <label class="block font-bold mb-1" for="application_name_aliases_0"
-                >Application Name Aliases</label
-            >
-            <p class="text-xs text-gray-500 mb-1">
-                List of application paths and their aliases.
+            <span class="setting-title">Application Name Aliases</span>
+            <p class="setting-explanation">
+                List of application paths and their aliases.<br />
             </p>
-            {#each application_name_aliases as alias, i}
-                <div class="flex items-center mb-1">
-                    <input
-                        class="input input-bordered mr-2"
-                        id={`application_name_aliases_path_${i}`}
-                        type="text"
-                        placeholder="Path"
-                        bind:value={application_name_aliases[i].path}
-                    />
-                    <input
-                        class="input input-bordered mr-2"
-                        id={`application_name_aliases_alias_${i}`}
-                        type="text"
-                        placeholder="Alias"
-                        bind:value={application_name_aliases[i].alias}
-                    />
+            <p class="text-xs border-(--color-text) border-1 p-2 rounded mb-3">
+                <strong>Note:</strong><br /> The "path" must exactly match the path
+                of an application discovered via "Application Search Path" (such
+                as .lnk or .exe files). If the path does not match,the alias will
+                not be applied.
+            </p>
+            {#each temporarySettings.applicationNameAliases as alias, i}
+                <div
+                    class="mb-2 p-2 rounded bg-(--color-bg-lightx2) flex items-center"
+                >
+                    <div class="flex flex-1">
+                        <div class="mb-1 flex-3">
+                            <span class="block text-xs font-semibold mb-1"
+                                >Path</span
+                            >
+                            <div class="flex items-start mb-1">
+                                <button
+                                    class="btn-ctl mr-2"
+                                    aria-label="Select Alias Target Application Path"
+                                    title="Select Alias Target Application Path"
+                                    onclick={async () =>
+                                        await openAliasTargetSelector(
+                                            alias.path,
+                                            i,
+                                        )}
+                                >
+                                    <Icon
+                                        icon="uiw:folder-open"
+                                        width={24}
+                                        height={24}
+                                    />
+                                </button>
+                                <textarea
+                                    class="resize-y text-sm"
+                                    readonly
+                                    rows="2"
+                                    bind:value={alias.path}
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div class="ml-2 flex-1">
+                            <span class="block text-xs font-semibold mb-1"
+                                >Alias</span
+                            >
+                            <input
+                                class="w-full {alias.alias
+                                    ? ''
+                                    : 'border-(--color-accent-red) border-2'}"
+                                type="text"
+                                placeholder="Alias"
+                                bind:value={alias.alias}
+                            />
+                        </div>
+                    </div>
                     <button
-                        type="button"
-                        class="btn btn-sm btn-error"
-                        onclick={() => application_name_aliases.splice(i, 1)}
-                        >🗑️</button
+                        class="btn-ctl basis-auto ml-2"
+                        onclick={() => removeAlias(i)}
+                        aria-label="Remove Alias"
+                        title="Remove Alias"
                     >
-                    >
+                        <Icon icon="uiw:delete" width={24} height={24} />
+                    </button>
                 </div>
             {/each}
             <button
-                type="button"
-                class="btn btn-sm btn-primary mt-1"
-                onclick={() =>
-                    (application_name_aliases = [
-                        ...application_name_aliases,
-                        { path: "", alias: "" },
-                    ])}>Add Alias</button
+                class="btn-ctl mt-1"
+                aria-label="Add Alias"
+                title="Add Alias"
+                onclick={async () => await openAliasTargetSelector()}
+                ><Icon
+                    icon="basil:add-outline"
+                    width={24}
+                    height={24}
+                /></button
             >
         </div>
 
@@ -469,6 +545,10 @@
     input[type="number"],
     select {
         @apply px-2 rounded bg-(--color-bg-light) h-8;
+    }
+    textarea {
+        @apply px-2 py-1 rounded bg-(--color-bg-light) w-full resize-y;
+        line-height: 1.4;
     }
 
     .setting-title {
