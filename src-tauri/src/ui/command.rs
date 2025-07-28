@@ -118,3 +118,17 @@ pub fn get_settings(app_state: tauri::State<'_, Mutex<Kasuri>>) -> Settings {
     log::debug!("Retrieving settings");
     app_state.lock().unwrap().settings.clone()
 }
+
+/// Tauri command to retrieve the default settings of the application.
+///
+/// This function provides a way to access the default settings
+/// for the Kasuri application, which can be useful for resetting or initializing settings.
+/// # Arguments
+/// * None
+/// # Returns
+/// * The default settings of the Kasuri application
+#[tauri::command]
+pub fn get_default_settings() -> Settings {
+    log::debug!("Retrieving default settings");
+    Settings::default()
+}

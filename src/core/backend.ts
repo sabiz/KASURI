@@ -6,6 +6,7 @@ const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
 const INVOKE_CLOSE_WINDOW = "close_window";
 const INVOKE_LAUNCH_APPLICATION = "launch_application";
 const INVOKE_GET_SETTINGS = "get_settings";
+const INVOKE_GET_DEFAULT_SETTINGS = "get_default_settings";
 
 /**
  * Represents an application that can be searched and launched.
@@ -104,6 +105,17 @@ export class Backend {
         return this.transform<Settings>(result);
     }
 
+    /**
+     * Retrieves the default settings from the backend.
+     * @returns A promise that resolves to the default settings object.
+     */
+    public async getDefaultSettings(): Promise<Settings> {
+        const result = await invoke(INVOKE_GET_DEFAULT_SETTINGS);
+        if (typeof result !== "object" || result === null) {
+            throw new Error("Invalid default settings format received from backend");
+        }
+        return this.transform<Settings>(result);
+    }
 
     /**
      * Transforms an object by converting its keys from snake_case to camelCase.

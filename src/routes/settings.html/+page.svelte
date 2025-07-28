@@ -209,8 +209,17 @@
         throw new Error("Not implemented yet");
     }
 
+    /**
+     * Loads the default settings from the backend.
+     * It fetches the default settings and updates the temporary settings.
+     * @returns A promise that resolves when the default settings are loaded.
+     */
     async function loadDefaultSettings() {
-        throw new Error("Not implemented yet");
+        temporarySettings = await backend.getDefaultSettings();
+        console.log(
+            "Default settings loaded:",
+            $state.snapshot(temporarySettings),
+        );
     }
 </script>
 
