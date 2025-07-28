@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme {
+:root {
     --color-bg: oklch(0.23 0.021 264.02);
     --color-bg-light: oklch(0.26 0.021 264.02);
     --color-bg-lightx2: oklch(0.32 0.021 264.02);
