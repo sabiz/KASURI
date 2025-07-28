@@ -204,6 +204,14 @@
                 (_, i) => i !== index,
             );
     }
+
+    async function saveSettings() {
+        throw new Error("Not implemented yet");
+    }
+
+    async function loadDefaultSettings() {
+        throw new Error("Not implemented yet");
+    }
 </script>
 
 <main class="container w-screen h-screen p-0 flex flex-col">
@@ -519,9 +527,15 @@
                 /></button
             >
         </div>
-
+        <hr />
         <div>
-            <button type="submit" class="btn btn-success">Save Settings</button>
+            <button
+                class="btn-ctl text-(--color-accent-blue)"
+                onclick={saveSettings}>Save</button
+            >
+            <button class="btn-ctl ml-2" onclick={loadDefaultSettings}
+                >Load Defaults</button
+            >
         </div>
     </div>
 </main>
