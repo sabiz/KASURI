@@ -29,6 +29,7 @@ tooltip = "KASURI👘"
 
 [[app.windows]]
 title = "KASURI"
+label = "main"
 width = 800
 height = 600
 alwaysOnTop = true
@@ -47,6 +48,31 @@ skipTaskbar = false              # true
 visible = false
 transparent = true
 url = "index.html"
+
+[[app.windows]]
+title = "KASURI - Settings"
+label = "settings"
+alwaysOnTop = true
+backgroundColor = "#000000"
+browserExtensionsEnabled = false
+center = true
+closable = true
+contentProtected = true
+create = false
+decorations = false
+devtools = true                  # false
+dragDropEnabled = false
+focus = true
+fullscreen = false
+height = 600
+width = 800
+maximizable = true
+minimizable = true
+resizable = true
+skipTaskbar = false
+zoomHotkeysEnabled = true
+url = "settings.html"
+
 
 [bundle]
 active = true
