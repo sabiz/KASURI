@@ -7,6 +7,9 @@ const INVOKE_CLOSE_WINDOW = "close_window";
 const INVOKE_LAUNCH_APPLICATION = "launch_application";
 const INVOKE_GET_SETTINGS = "get_settings";
 const INVOKE_GET_DEFAULT_SETTINGS = "get_default_settings";
+const INVOKE_SAVE_SETTINGS = "save_settings";
+const INVOKE_RESTART_APP = "restart_app";
+
 
 /**
  * Represents an application that can be searched and launched.
@@ -102,7 +105,7 @@ export class Backend {
         if (typeof result !== "object" || result === null) {
             throw new Error("Invalid settings format received from backend");
         }
-        return this.transform<Settings>(result);
+        return this.transformForFrontend<Settings>(result);
     }
 
     /**
@@ -114,7 +117,26 @@ export class Backend {
         if (typeof result !== "object" || result === null) {
             throw new Error("Invalid default settings format received from backend");
         }
-        return this.transform<Settings>(result);
+        return this.transformForFrontend<Settings>(result);
+    }
+
+    /**
+     * Saves the settings to the backend.
+     * @param settings The settings object to be saved.
+     * @returns A promise that resolves when the settings are saved.
+     */
+    public async saveSettings(settings: Settings): Promise<boolean> {
+        return await invoke(INVOKE_SAVE_SETTINGS, {
+            settings: this.transformForBackend(settings)
+        });
+    }
+
+    /**
+     * Restarts the application.
+     * @returns A promise that resolves when the application is restarted.
+     */
+    public async restartApp(): Promise<void> {
+        await invoke(INVOKE_RESTART_APP);
     }
 
     /**
@@ -122,7 +144,7 @@ export class Backend {
      * @param obj The object to be transformed.
      * @returns The transformed object with camelCase keys.
      */
-    private transform<T>(obj: any): T {
+    private transformForFrontend<T>(obj: any): T {
         const result: any = {};
         for (const key in obj) {
             if (!obj.hasOwnProperty(key)) {
@@ -133,14 +155,38 @@ export class Backend {
             if (Array.isArray(value)) {
                 result[camelCaseKey] = value.map((item: any) => {
                     if (typeof item === "object" && item !== null) {
-                        return this.transform(item);
+                        return this.transformForFrontend(item);
                     }
                     return item;
                 });
             } else if (typeof value === "object" && value !== null) {
-                result[camelCaseKey] = this.transform(value);
+                result[camelCaseKey] = this.transformForFrontend(value);
             } else {
                 result[camelCaseKey] = value;
+            }
+        }
+        return result as T;
+    }
+
+    private transformForBackend<T>(obj: any): T {
+        const result: any = {};
+        for (const key in obj) {
+            if (!obj.hasOwnProperty(key)) {
+                continue;
+            }
+            const value = obj[key];
+            const snakeCaseKey = key.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`);
+            if (Array.isArray(value)) {
+                result[snakeCaseKey] = value.map((item: any) => {
+                    if (typeof item === "object" && item !== null) {
+                        return this.transformForBackend(item);
+                    }
+                    return item;
+                });
+            } else if (typeof value === "object" && value !== null) {
+                result[snakeCaseKey] = this.transformForBackend(value);
+            } else {
+                result[snakeCaseKey] = value;
             }
         }
         return result as T;

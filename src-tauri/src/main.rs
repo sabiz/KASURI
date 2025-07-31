@@ -7,7 +7,7 @@ use crate::ui::MenuId;
 use crate::ui::WINDOW_ID_MAIN;
 use crate::ui::command::{
     changed_content_size, close_window, get_default_settings, get_settings, launch_application,
-    search_application,
+    restart_app, save_settings, search_application,
 };
 use crate::ui::event_handler::{on_global_shortcut, on_menu_event, on_tray_icon_event};
 use kasuri::Kasuri;
@@ -47,7 +47,9 @@ fn run() -> KasuriResult<()> {
             close_window,
             launch_application,
             get_settings,
-            get_default_settings
+            get_default_settings,
+            save_settings,
+            restart_app,
         ])
         .setup(move |app| {
             log::debug!("Setup started");

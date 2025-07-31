@@ -132,3 +132,33 @@ pub fn get_default_settings() -> Settings {
     log::debug!("Retrieving default settings");
     Settings::default()
 }
+
+/// Tauri command to set new settings for the application.
+/// This function is called when the user updates settings in the UI.
+/// It saves the new settings to the file system.
+/// # Arguments
+/// * `settings` - The new settings to be saved
+/// # Returns
+/// * A string indicating the result of the operation
+#[tauri::command]
+pub fn save_settings(settings: Settings) -> bool {
+    log::debug!("Setting new settings");
+    if let Err(e) = settings.save() {
+        log::error!("Failed to save settings: {}", e);
+        return false;
+    }
+    true
+}
+
+/// Tauri command to restart the application.
+/// This function is called when the user requests a restart,
+/// typically after changing settings or for updates.
+/// # Arguments
+/// * `app_handle` - Tauri app handle for restarting the application
+/// # Returns
+/// * None
+#[tauri::command]
+pub fn restart_app(app_handle: tauri::AppHandle) -> () {
+    log::debug!("Restarting application");
+    app_handle.restart();
+}

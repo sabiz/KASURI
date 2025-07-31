@@ -2,7 +2,7 @@
     import { onMount } from "svelte";
     import Icon from "@iconify/svelte";
     import { Window } from "@tauri-apps/api/window";
-    import { open } from "@tauri-apps/plugin-dialog";
+    import { open, message } from "@tauri-apps/plugin-dialog";
     import type { Settings } from "../../core/settings";
     import { LogLevel } from "../../core/settings";
     import { Backend } from "../../core/backend";
@@ -205,10 +205,6 @@
             );
     }
 
-    async function saveSettings() {
-        throw new Error("Not implemented yet");
-    }
-
     /**
      * Loads the default settings from the backend.
      * It fetches the default settings and updates the temporary settings.
@@ -220,6 +216,21 @@
             "Default settings loaded:",
             $state.snapshot(temporarySettings),
         );
+    }
+
+    async function saveSettings() {
+        const result = await backend.saveSettings(temporarySettings);
+
+        if (result) {
+            if (import.meta.env.MODE !== "development") {
+                await backend.restartApp();
+            }
+        } else {
+            await message("Failed to save settings. Please try again later.", {
+                title: "Error",
+                kind: "error",
+            });
+        }
     }
 </script>
 
@@ -545,6 +556,9 @@
             <button class="btn-ctl ml-2" onclick={loadDefaultSettings}
                 >Load Defaults</button
             >
+            <div class="text-xs mt-2">
+                * After saving, KASURI will automatically restart.
+            </div>
         </div>
     </div>
 </main>

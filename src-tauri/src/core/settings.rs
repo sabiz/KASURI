@@ -302,7 +302,7 @@ impl Settings {
     /// - The file cannot be created
     /// - The settings cannot be serialized to TOML
     /// - The data cannot be written to the file
-    fn save(self) -> KasuriResult<()> {
+    pub fn save(self) -> KasuriResult<()> {
         let path = Self::get_settings_file_path();
         log::debug!("Creating settings file: {:?}", path);
         let mut file = File::create(path)?;
