@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Settings } from "../core/settings";
+import type { Settings } from "./settings";
 
 const INVOKE_SEARCH_APPLICATION = "search_application";
 const INVOKE_CHANGED_CONTENT_SIZE = "changed_content_size";
@@ -168,6 +168,11 @@ export class Backend {
         return result as T;
     }
 
+    /**
+     * Transforms an object by converting its keys from camelCase to snake_case.
+     * @param obj The object to be transformed.
+     * @returns The transformed object with snake_case keys.
+     */
     private transformForBackend<T>(obj: any): T {
         const result: any = {};
         for (const key in obj) {

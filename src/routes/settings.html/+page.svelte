@@ -3,14 +3,24 @@
     import Icon from "@iconify/svelte";
     import { Window } from "@tauri-apps/api/window";
     import { open, message } from "@tauri-apps/plugin-dialog";
-    import type { Settings } from "../../core/settings";
-    import { LogLevel } from "../../core/settings";
-    import { Backend } from "../../core/backend";
+    import { deepEqual } from "fast-equals";
+    import type { Settings } from "../../lib/settings";
+    import { LogLevel } from "../../lib/settings";
+    import { Backend } from "../../lib/backend";
 
     const THIS_WINDOW_LABEL = "settings";
     const WINDOWS_STORE_APP_ALIAS = "WindowsStoreApp";
 
     const backend = new Backend();
+    let originalSettings: Settings = $state({
+        applicationSearchPathList: [],
+        applicationSearchIntervalOnStartupMinute: 0,
+        logLevel: LogLevel.Info,
+        width: 0,
+        autoStartup: false,
+        shortcutKey: "",
+        applicationNameAliases: [],
+    });
     let temporarySettings: Settings = $state({
         applicationSearchPathList: [],
         applicationSearchIntervalOnStartupMinute: 0,
@@ -29,11 +39,19 @@
     let auto_startup: string = $derived(
         temporarySettings.autoStartup ? "on" : "off",
     );
+    let isEqualToOriginalSettings = $state(true);
+    $effect(() => {
+        isEqualToOriginalSettings = deepEqual(
+            originalSettings,
+            temporarySettings,
+        );
+    });
     let elementShortcut: HTMLInputElement | null = null;
 
     onMount(async () => {
         const settings = await backend.getSettings();
         temporarySettings = { ...settings };
+        originalSettings = { ...settings };
         console.log("Settings loaded:", $state.snapshot(temporarySettings));
     });
 
@@ -218,6 +236,11 @@
         );
     }
 
+    /**
+     * Saves the current settings to the backend.
+     * If successful, it restarts the application if not in development mode.
+     * If failed, it shows an error message.
+     */
     async function saveSettings() {
         const result = await backend.saveSettings(temporarySettings);
 
@@ -550,8 +573,9 @@
         <hr />
         <div>
             <button
-                class="btn-ctl text-(--color-accent-blue)"
-                onclick={saveSettings}>Save</button
+                class="btn-ctl text-(--color-accent-blue) disabled:text-(--color-bg-lightx3)"
+                onclick={saveSettings}
+                disabled={isEqualToOriginalSettings}>Save</button
             >
             <button class="btn-ctl ml-2" onclick={loadDefaultSettings}
                 >Load Defaults</button

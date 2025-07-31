@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { Application } from "../core/backend";
-  import { Backend } from "../core/backend";
+  import type { Application } from "../lib/backend";
+  import { Backend } from "../lib/backend";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
