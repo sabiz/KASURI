@@ -6,7 +6,7 @@ The name "KASURI" is derived from the traditional Japanese "Kasuri" (絣) patter
 It also carries the self-deprecating wordplay of "Kasu na Launcher" in Japanese, which humorously refers to itself as a "poor/useless launcher". 😅
 
 
-![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.1-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 ![Built with](https://img.shields.io/badge/built%20with-Rust%20%2B%20Tauri-orange.svg)
