@@ -13,7 +13,7 @@ withGlobalTauri = false
 
 [app.security]
 capabilities = ["default"]
-csp = "default-src 'self' img-src 'self' asset: http://asset.localhost"
+csp = "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; connect-src 'self' http://ipc.localhost https://api.iconify.design"
 
 [app.security.assetProtocol]
 enable = true
