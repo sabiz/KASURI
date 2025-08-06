@@ -29,9 +29,15 @@ It also carries the self-deprecating wordplay of "Kasu na Launcher" in Japanese,
 
 ## :hatching_chick:Installation
 
+
+
 ### From Releases
 
-Currently not available. Release packages will be provided in future updates.
+You can download the latest release from the [GitHub Releases page](https://github.com/sabiz/KASURI/releases).
+
+1. Download the Windows installer (e.g. `KASURI_<version>_x64-setup.exe`) from the latest release.
+2. Run the installer and follow the on-screen instructions.
+3. After installation, you can launch KASURI from the Start Menu or the installation directory.
 
 ### Building from Source
 
@@ -66,55 +72,56 @@ npm run tauri build
 3. Use arrow keys to navigate between suggestions
 4. Press Enter to launch the selected application
 
+
+
 ### Configuration
 
-Settings can be configured in `settings.toml` located in the KASURI application data directory:
+KASURI settings can be easily configured from the in-app **Settings Screen**.
 
-- `shortcut_key`: Global hotkey to open the launcher
-- `width`: Width of the launcher window
-- `auto_startup`: Whether to start KASURI when Windows starts
-- `log_level`: Logging verbosity (error, warn, info, debug)
-- `application_search_path_list`: Directories to search for applications
-- `application_search_interval_on_startup_minute`: How often to refresh the application cache
-- `application_name_aliases`: List of aliases for applications. Each alias entry should specify the application's path and the desired alias name. Example:
+To open the Settings Screen, right-click the KASURI icon in the system tray and select "Settings" from the menu.
 
-```toml
-[[application_name_aliases]]
-path = "C:/Program Files/ExampleApp/Example.exe"
-alias = "exapp"
-```
+- You can intuitively change major settings such as hotkey, window width, auto startup, log level, application search paths, and application aliases via the GUI.
+- Changes are applied immediately (some items may require a restart).
+- There is no need to edit the `settings.toml` file directly.
 
-> **Note:**
-> The `path` specified in each `application_name_aliases` entry must exactly match the path of an application discovered via `application_search_path_list` (such as `.lnk` or `.exe` files). If the path does not match, the alias will not be applied.
+### System Tray Menu Items
+
+- **Settings**: Opens the settings window where you can configure hotkey, window width, auto startup, log level, application search paths, and application aliases.
+- **Reload**: Reloads the application cache (e.g., re-scans for applications). Use this if you have installed or removed applications and want to update the list.
+- **Open Log Directory**: Opens the folder where log files are stored. Useful for troubleshooting or checking logs.
+- **Exit**: Exits KASURI completely.
 
 ## :chicken:FAQ
 
+
+
 ### How do I change the hotkey?
 
-Edit the `shortcut_key` setting in the `settings.toml` file. The format follows the [Tauri global shortcut](https://tauri.app/v1/api/js/globalShortcut/) convention.
+You can change the hotkey from the Settings Screen. The format follows the [Tauri global shortcut](https://tauri.app/v1/api/js/globalShortcut/) convention.
+
+
 
 ### How do I set an alias for an application?
 
-Add an entry to the `application_name_aliases` section in your `settings.toml` file. Specify the application's path and the alias you want to use. For example:
+You can add application aliases from the "Application Aliases" section in the Settings Screen. Once set, you can search for the application using either its original name or the alias.
 
-```toml
-[[application_name_aliases]]
-path = "C:/Program Files/ExampleApp/Example.exe"
-alias = "exapp"
-```
-You can now search for the application using either its original name or the alias.
+
 
 ### Why doesn't KASURI find some of my applications?
 
-KASURI searches for applications in the directories specified in `application_search_path_list`. Make sure all your application directories are included.
+KASURI searches for applications in the directories specified in the Settings Screen. Please make sure all necessary directories are included in your configuration.
+
+
 
 ### How can I make KASURI launch on startup?
 
-Set `auto_startup = true` in your `settings.toml` file.
+Enable the "Auto Startup" option in the Settings Screen.
+
+
 
 ### Where are my settings stored?
 
-Settings are stored in `%APPDATA%\Local\KASURI\settings.toml`.
+Settings are stored internally in `%APPDATA%\Local\KASURI\settings.toml`, but you should normally use the Settings Screen for all configuration.
 
 ### Where are log files stored?
 
